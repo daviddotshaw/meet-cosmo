@@ -449,7 +449,9 @@ function buildCosmo() {
     tummyG.add(sl);
   }
 
-  addHit(tummyG, new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.68, 0.2), M.hit));
+  const tummyHit = new THREE.Mesh(new THREE.BoxGeometry(1.0, 0.85, 0.4), M.hit);
+  tummyHit.position.set(0, 0, 0.15);
+  addHit(tummyG, tummyHit);
 
   // ── ARMS ──
   [-1, 1].forEach(s => {

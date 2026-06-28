@@ -29,35 +29,35 @@ body {
 .hidden { display: none !important; }
 
 /* ── Splash ── */
-#splash { justify-content: flex-end; padding-bottom: max(40px, 8vh); }
+#splash { justify-content: flex-end; padding-bottom: max(24px, 5vh); }
 
 .splash-glass {
   pointer-events: auto;
-  background: rgba(10, 20, 50, 0.55);
-  backdrop-filter: blur(18px);
-  -webkit-backdrop-filter: blur(18px);
-  border: 1px solid rgba(100, 160, 255, 0.25);
-  border-radius: 28px;
-  padding: 28px 36px 32px;
+  background: rgba(5, 12, 35, 0.45);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(100, 160, 255, 0.2);
+  border-radius: 22px;
+  padding: 14px 24px 18px;
   text-align: center;
-  max-width: 420px; width: 90%;
-  box-shadow: 0 0 60px rgba(30, 100, 255, 0.15), 0 20px 40px rgba(0,0,0,0.4);
+  max-width: 360px; width: 88%;
+  box-shadow: 0 0 40px rgba(30, 100, 255, 0.1), 0 10px 24px rgba(0,0,0,0.35);
 }
 
 .splash-title {
-  font-size: clamp(2.4rem, 9vw, 4.2rem);
+  font-size: clamp(1.7rem, 6vw, 2.6rem);
   font-weight: 900;
   color: #fff;
-  letter-spacing: -1px;
-  text-shadow: 0 0 40px rgba(100,180,255,0.6), 0 2px 4px rgba(0,0,0,0.5);
-  margin-bottom: 10px;
+  letter-spacing: -0.5px;
+  text-shadow: 0 0 30px rgba(100,180,255,0.6), 0 2px 4px rgba(0,0,0,0.5);
+  margin-bottom: 4px;
 }
 
 .splash-sub {
-  font-size: clamp(0.9rem, 3vw, 1.15rem);
-  color: rgba(180, 210, 255, 0.8);
-  margin-bottom: 22px;
-  line-height: 1.5;
+  font-size: clamp(0.75rem, 2.3vw, 0.9rem);
+  color: rgba(180, 210, 255, 0.75);
+  margin-bottom: 12px;
+  line-height: 1.4;
 }
 
 .splash-btns {

@@ -7,25 +7,25 @@
 // ── Body parts ──────────────────────────────────────────────────────────────
 const PARTS = [
   { id:'ears',  label:'Ears',
-    explore:'These are my ears! I use them to hear every sound around me!',
+    explore:'These are my ears! I can hear everything you say! Can you wiggle your ears? I cannot wiggle mine! My ears just go boing boing!',
     quiz:'Can you find my ears?' },
   { id:'eyes',  label:'Eyes',
-    explore:'These are my eyes! I can see all the wonderful colours of the world!',
+    explore:'These are my eyes! Blink! Blink! Blink! I can see your lovely face! How many eyes do you have? I have two, just like you!',
     quiz:'Can you find my eyes?' },
   { id:'nose',  label:'Nose',
-    explore:'This is my nose! It helps me smell all kinds of amazing things!',
-    quiz:'Can you touch my nose?' },
+    explore:'Beep boop! This is my nose! Yours can sniff things, but mine just goes beep boop! Try it! Beep boop!',
+    quiz:'Can you tap my nose?' },
   { id:'mouth', label:'Mouth',
-    explore:'This is my mouth! I use it to talk, sing, and smile at you!',
+    explore:'This is my mouth! La la la la la! I love to talk and sing! Can you say hello to me? Go on, say hello!',
     quiz:'Can you find my mouth?' },
   { id:'tummy', label:'Tummy',
-    explore:'This is my tummy! My power core glows right inside here!',
+    explore:'This is my tummy! I keep all my robot biscuits in here! Nom nom nom! Do you like biscuits too?',
     quiz:'Can you find my tummy?' },
   { id:'hands', label:'Hands',
-    explore:'These are my hands! I love to wave hello and give high fives!',
+    explore:'These are my hands! I love to wave hello to all my friends! Can you wave back at me? Hello! Hello! Hello!',
     quiz:'Can you find my hands?' },
   { id:'feet',  label:'Feet',
-    explore:'These are my feet! I dance and stomp around with these!',
+    explore:'These are my feet! I do the robot dance with these! Do do do do do! Can you do the robot dance too? Stomp stomp stomp!',
     quiz:'Can you find my feet?' },
 ];
 
@@ -51,8 +51,8 @@ let mouseNDC   = new THREE.Vector2(0, 0);
 let idleT      = 0;
 let blinkCountdown = 3;
 let isSpeaking = false;
-let camZ       = 7.5;       // current camera Z (lerped)
-let camZTarget = 7.5;
+let camZ       = 8.5;       // current camera Z (lerped)
+let camZTarget = 8.5;
 
 // ── Materials ────────────────────────────────────────────────────────────────
 let M; // material palette
@@ -92,7 +92,7 @@ function initThree() {
 
   const W = window.innerWidth, H = window.innerHeight;
   camera = new THREE.PerspectiveCamera(42, W / H, 0.1, 300);
-  camera.position.set(0, 0.3, camZ);
+  camera.position.set(0, 0.2, camZ);
 
   const canvas = document.getElementById('cosmo-canvas');
   renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
@@ -159,8 +159,24 @@ function addLights() {
 }
 
 // ── Star field ───────────────────────────────────────────────────────────────
+function makeCircleTexture(size = 64) {
+  const canvas = document.createElement('canvas');
+  canvas.width = canvas.height = size;
+  const ctx = canvas.getContext('2d');
+  const half = size / 2;
+  const grad = ctx.createRadialGradient(half, half, 0, half, half, half);
+  grad.addColorStop(0,   'rgba(255,255,255,1)');
+  grad.addColorStop(0.3, 'rgba(255,255,255,0.9)');
+  grad.addColorStop(1,   'rgba(255,255,255,0)');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, size, size);
+  return new THREE.CanvasTexture(canvas);
+}
+
 function buildStarField() {
-  // Main field
+  const starTex = makeCircleTexture(64);
+
+  // Main field — small, soft stars
   const n = 3000;
   const pos = new Float32Array(n * 3);
   const col = new Float32Array(n * 3);
@@ -178,18 +194,22 @@ function buildStarField() {
   geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
   geo.setAttribute('color',    new THREE.BufferAttribute(col, 3));
   scene.add(new THREE.Points(geo,
-    new THREE.PointsMaterial({ size: 0.2, vertexColors: true, sizeAttenuation: true })));
+    new THREE.PointsMaterial({ size: 0.28, vertexColors: true, sizeAttenuation: true,
+      map: starTex, transparent: true, alphaTest: 0.01, depthWrite: false })));
 
-  // Large bright stars
-  const bn = 60, bp = new Float32Array(bn * 3);
+  // Large bright stars — circular sprites so they don't look like squares
+  const bn = 55, bp = new Float32Array(bn * 3);
   for (let i = 0; i < bn; i++) {
     bp[i*3] = (Math.random()-0.5)*90; bp[i*3+1] = (Math.random()-0.5)*90; bp[i*3+2] = (Math.random()-0.5)*60-15;
   }
   const bgeo = new THREE.BufferGeometry();
   bgeo.setAttribute('position', new THREE.BufferAttribute(bp, 3));
-  scene.add(new THREE.Points(bgeo, new THREE.PointsMaterial({ size: 0.55, color: 0xFFFFFF })));
+  scene.add(new THREE.Points(bgeo, new THREE.PointsMaterial({
+    size: 0.7, color: 0xFFFFFF, map: starTex,
+    transparent: true, alphaTest: 0.01, depthWrite: false
+  })));
 
-  // Nebula glow: a few large faint sprites
+  // Nebula glow
   const nebColours = [0x1A0050, 0x003366, 0x001A40];
   nebColours.forEach((col, i) => {
     const light = new THREE.PointLight(col, 0.4, 60);
@@ -294,45 +314,47 @@ function buildCosmo() {
   partGroups.eyes = eyesG;
   headG.add(eyesG);
 
-  [{ x: -0.26, name: 'leftIris' }, { x: 0.26, name: 'rightIris' }].forEach(({ x, name }) => {
+  // Big cute eyes — further apart at ±0.24, moved up to y=0.18, pushed forward z=0.70
+  [{ x: -0.24, name: 'leftIris' }, { x: 0.24, name: 'rightIris' }].forEach(({ x, name }) => {
     const eyeG = new THREE.Group();
-    eyeG.position.set(x, 0.13, 0.67);
+    eyeG.position.set(x, 0.18, 0.70);
 
-    // Socket recess
-    const socket = new THREE.Mesh(new THREE.SphereGeometry(0.19, 32, 32), M.dark.clone());
-    socket.position.z = -0.04;
+    // Dark socket recess — bigger
+    const socket = new THREE.Mesh(new THREE.SphereGeometry(0.26, 32, 32), M.dark.clone());
+    socket.position.z = -0.06;
     socket.userData.part = 'eyes';
     eyeG.add(socket); hitMeshes.push(socket);
 
-    // White
-    const white = new THREE.Mesh(new THREE.SphereGeometry(0.18, 48, 48), M.eyeWhite.clone());
+    // White — much bigger (0.24 vs old 0.18)
+    const white = new THREE.Mesh(new THREE.SphereGeometry(0.24, 48, 48), M.eyeWhite.clone());
     white.userData.part = 'eyes';
     eyeG.add(white); hitMeshes.push(white);
 
-    // Iris group (tracked by eye tracking system)
+    // Iris group
     const irisG = new THREE.Group();
     irisG.name = name;
-    const iris = new THREE.Mesh(new THREE.SphereGeometry(0.105, 32, 32), M.eyeIris.clone());
-    iris.position.set(0, 0, 0.08);
+    const iris = new THREE.Mesh(new THREE.SphereGeometry(0.14, 32, 32), M.eyeIris.clone());
+    iris.position.set(0, 0, 0.1);
     irisG.add(iris);
     // Pupil
-    const pupil = new THREE.Mesh(new THREE.SphereGeometry(0.062, 24, 24), M.eyePupil.clone());
-    pupil.position.set(0, 0, 0.14);
+    const pupil = new THREE.Mesh(new THREE.SphereGeometry(0.082, 24, 24), M.eyePupil.clone());
+    pupil.position.set(0, 0, 0.18);
     irisG.add(pupil);
-    // Shine
-    const shine1 = new THREE.Mesh(new THREE.SphereGeometry(0.032, 8, 8), M.eyeWhite.clone());
-    shine1.position.set(0.04, 0.04, 0.16);
+    // Large shine dot
+    const shine1 = new THREE.Mesh(new THREE.SphereGeometry(0.048, 8, 8), M.eyeWhite.clone());
+    shine1.position.set(0.055, 0.055, 0.21);
     irisG.add(shine1);
-    const shine2 = new THREE.Mesh(new THREE.SphereGeometry(0.016, 6, 6), M.eyeWhite.clone());
-    shine2.position.set(-0.02, -0.03, 0.17);
+    // Small second shine
+    const shine2 = new THREE.Mesh(new THREE.SphereGeometry(0.024, 6, 6), M.eyeWhite.clone());
+    shine2.position.set(-0.03, -0.04, 0.22);
     irisG.add(shine2);
     eyeG.add(irisG);
     eyesG.add(eyeG);
   });
 
   // Hit strip across both eyes
-  const eyeHit = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.42, 0.18), M.hit);
-  eyeHit.position.set(0, 0.13, 0.6);
+  const eyeHit = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.55, 0.22), M.hit);
+  eyeHit.position.set(0, 0.18, 0.62);
   addHit(eyesG, eyeHit);
 
   // ── NOSE ──
@@ -367,23 +389,18 @@ function buildCosmo() {
   partGroups.mouth = mouthG;
   headG.add(mouthG);
 
-  const mouthMat = new THREE.MeshPhongMaterial({ color: 0x1A252F, shininess: 40 });
+  // Smile: centre dot highest, corners curve down — clear happy smile
+  const mouthMat = new THREE.MeshPhongMaterial({ color: 0x0D1B2A, shininess: 60 });
   for (let i = 0; i <= 8; i++) {
-    const t = i / 8 - 0.5;
-    const dot = new THREE.Mesh(new THREE.SphereGeometry(0.038, 12, 12), mouthMat);
-    dot.position.set(t * 0.44, Math.abs(t) * 0.2 - 0.1, 0);
+    const t = i / 8 - 0.5; // -0.5 .. 0.5
+    // Parabola: y = centre_height - (t*scale)^2 → high in middle, lower at corners
+    const y = 0.06 - (t * 1.1) * (t * 1.1) * 0.55;
+    const dot = new THREE.Mesh(new THREE.SphereGeometry(0.040, 12, 12), mouthMat);
+    dot.position.set(t * 0.46, y, 0);
     dot.userData.part = 'mouth';
     mouthG.add(dot); hitMeshes.push(dot);
   }
-  // Inner glow (simulates open mouth when speaking)
-  const innerMouth = new THREE.Mesh(
-    new THREE.PlaneGeometry(0.28, 0.1),
-    new THREE.MeshStandardMaterial({ color: 0xFF3322, emissive: 0x661100, emissiveIntensity: 0.5, transparent: true, opacity: 0.7 })
-  );
-  innerMouth.position.z = -0.01;
-  innerMouth.name = 'innerMouth';
-  mouthG.add(innerMouth);
-  addHit(mouthG, new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.3, 0.18), M.hit));
+  addHit(mouthG, new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.32, 0.18), M.hit));
 
   // ── BODY ──
   const bodyG = new THREE.Group();
@@ -584,10 +601,6 @@ function renderLoop() {
     // Screen shimmer
     const sm = cosmoRoot.getObjectByName('screenMesh');
     if (sm) sm.material.emissiveIntensity = 0.85 + Math.sin(idleT * 2.2) * 0.2;
-
-    // Mouth open/close when speaking
-    const im = cosmoRoot.getObjectByName('innerMouth');
-    if (im) im.material.opacity = isSpeaking ? 0.55 + Math.sin(idleT * 18) * 0.35 : 0;
 
     // Eye tracking
     updateEyeTracking();
@@ -871,8 +884,10 @@ function speak(text) {
   return new Promise(resolve => {
     syn.cancel();
     const u = new SpeechSynthesisUtterance(text);
-    u.rate = 0.88; u.pitch = 1.15; u.volume = 1;
-    const v = voices.find(v => v.lang.startsWith('en') && /samantha|hazel|kate|zira|google uk/i.test(v.name))
+    u.rate = 0.92; u.pitch = 1.7; u.volume = 1;
+    const v = voices.find(v => v.lang.startsWith('en') && /google uk english female|samantha|hazel|karen|moira|tessa/i.test(v.name))
+           || voices.find(v => v.lang.startsWith('en-GB') || v.lang.startsWith('en-AU'))
+           || voices.find(v => v.lang.startsWith('en') && v.name.toLowerCase().includes('female'))
            || voices.find(v => v.lang.startsWith('en'))
            || voices[0];
     if (v) u.voice = v;
@@ -936,10 +951,12 @@ function showScreen(id) {
   if (el) { el.classList.remove('hidden'); el.classList.add('active'); }
 
   if (id === 'game') {
-    camZTarget = 5.2;
+    // Portrait phones need camera further back so feet are visible
+    const aspect = window.innerWidth / window.innerHeight;
+    camZTarget = aspect < 0.65 ? 7.2 : 6.0;
     document.getElementById('label-bubble').classList.add('hidden');
   } else {
-    camZTarget = 7.5;
+    camZTarget = 8.5;
   }
 }
 
@@ -982,6 +999,6 @@ document.addEventListener('DOMContentLoaded', () => {
 async function initSplash() {
   const btns = document.getElementById('splash-btns');
   btns.classList.add('hidden');
-  await speak('Hi there! I am Cosmo! Your robot friend. Tap different parts of my body to learn what they are called!');
+  await speak('Ooh hello! I am Cosmo! I am a friendly robot and I love making new friends! Tap me to find out all about my body parts!');
   btns.classList.remove('hidden');
 }

@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#050a18">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <title>Meet Cosmo!</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="assets/icons/icon-192.png">
+  <link rel="apple-touch-icon" href="assets/icons/icon-192.png">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- Three.js renders here — always full screen behind everything -->
+  <canvas id="cosmo-canvas"></canvas>
+
+  <!-- ─── Splash overlay ─── -->
+  <div id="splash" class="overlay active">
+    <div class="splash-glass">
+      <h1 class="splash-title">Meet Cosmo!</h1>
+      <p class="splash-sub">Your robot friend — learning body parts has never looked this good.</p>
+      <div id="splash-btns" class="splash-btns hidden">
+        <button class="btn btn-explore" id="btn-explore">🔍 Explore</button>
+        <button class="btn btn-quiz"    id="btn-quiz">⭐ Quiz Time!</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── Game overlay (pointer-events: none so canvas gets clicks) ─── -->
+  <div id="game" class="overlay hidden">
+    <div class="game-header">
+      <div class="mode-badge" id="mode-badge">🔍 Explore</div>
+      <div class="score-area hidden" id="score-area"><span id="stars"></span></div>
+      <button class="btn-quit" id="btn-quit">Quit</button>
+    </div>
+    <div class="quiz-panel hidden" id="quiz-panel">
+      <p id="quiz-q"></p>
+    </div>
+  </div>
+
+  <!-- ─── Label bubble (centre-top, over canvas) ─── -->
+  <div id="label-bubble" class="label-bubble hidden">
+    <span id="bubble-text"></span>
+  </div>
+
+  <!-- ─── HTML FX layer (confetti) ─── -->
+  <div id="html-fx" aria-hidden="true"></div>
+
+  <script src="three.min.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

@@ -14,196 +14,225 @@
 </head>
 <body>
 
-  <!-- Animated star canvas background -->
   <canvas id="star-canvas"></canvas>
 
-  <!-- Cosmo SVG illustration — always visible, centre-screen -->
   <div id="cosmo-wrap">
-    <svg id="cosmo-svg" viewBox="0 0 420 660" xmlns="http://www.w3.org/2000/svg">
+    <svg id="cosmo-svg" viewBox="0 0 420 680" xmlns="http://www.w3.org/2000/svg">
       <defs>
-        <radialGradient id="rg-body" cx="35%" cy="28%" r="65%">
-          <stop offset="0%" stop-color="#82D8EE"/>
-          <stop offset="100%" stop-color="#2B94B8"/>
+        <!-- Gradients -->
+        <radialGradient id="rg-body" cx="34%" cy="26%" r="66%">
+          <stop offset="0%" stop-color="#88DAEA"/>
+          <stop offset="100%" stop-color="#2B96B8"/>
         </radialGradient>
         <radialGradient id="rg-gold" cx="30%" cy="22%" r="70%">
-          <stop offset="0%" stop-color="#FFEA72"/>
+          <stop offset="0%" stop-color="#FFF088"/>
           <stop offset="100%" stop-color="#B88000"/>
         </radialGradient>
         <radialGradient id="rg-panel" cx="36%" cy="25%" r="64%">
           <stop offset="0%" stop-color="#FFF082"/>
-          <stop offset="100%" stop-color="#CF9800"/>
+          <stop offset="100%" stop-color="#CF9600"/>
         </radialGradient>
         <radialGradient id="rg-eyewhite" cx="28%" cy="22%" r="72%">
           <stop offset="0%" stop-color="#FFFFFF"/>
           <stop offset="100%" stop-color="#D6EEFF"/>
         </radialGradient>
         <radialGradient id="rg-iris" cx="38%" cy="32%" r="62%">
-          <stop offset="0%" stop-color="#5ACCE8"/>
-          <stop offset="100%" stop-color="#0F5268"/>
+          <stop offset="0%" stop-color="#3ABBD8"/>
+          <stop offset="100%" stop-color="#0D4A62"/>
         </radialGradient>
-        <radialGradient id="rg-hand" cx="32%" cy="25%" r="68%">
-          <stop offset="0%" stop-color="#2A7898"/>
-          <stop offset="100%" stop-color="#092C3E"/>
+        <radialGradient id="rg-hand" cx="30%" cy="22%" r="70%">
+          <stop offset="0%" stop-color="#2A6888"/>
+          <stop offset="100%" stop-color="#082030"/>
         </radialGradient>
-        <radialGradient id="rg-screen" cx="26%" cy="20%" r="74%">
-          <stop offset="0%" stop-color="#3DDCBC"/>
-          <stop offset="100%" stop-color="#069474"/>
-        </radialGradient>
-        <radialGradient id="rg-pink" cx="30%" cy="26%" r="70%">
-          <stop offset="0%" stop-color="#FFBDD0"/>
-          <stop offset="100%" stop-color="#FF4A88"/>
+        <radialGradient id="rg-dark-ear" cx="30%" cy="25%" r="70%">
+          <stop offset="0%" stop-color="#3A8AAA"/>
+          <stop offset="100%" stop-color="#16506A"/>
         </radialGradient>
         <radialGradient id="rg-nose" cx="33%" cy="26%" r="67%">
           <stop offset="0%" stop-color="#FF7766"/>
           <stop offset="100%" stop-color="#AA1200"/>
         </radialGradient>
+        <radialGradient id="rg-pink" cx="30%" cy="26%" r="70%">
+          <stop offset="0%" stop-color="#FFBBCC"/>
+          <stop offset="100%" stop-color="#FF4A88"/>
+        </radialGradient>
+        <!-- Filters -->
         <filter id="sf" x="-30%" y="-30%" width="160%" height="160%">
-          <feDropShadow dx="2" dy="7" stdDeviation="11" flood-color="#000" flood-opacity="0.38"/>
+          <feDropShadow dx="2" dy="8" stdDeviation="12" flood-color="#000" flood-opacity="0.40"/>
         </filter>
         <filter id="ant-glow">
           <feGaussianBlur stdDeviation="5" result="b"/>
           <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
         </filter>
+        <!-- Clip paths -->
+        <clipPath id="clip-head">
+          <rect x="80" y="74" width="260" height="222" rx="56"/>
+        </clipPath>
+        <clipPath id="clip-leye">
+          <circle cx="166" cy="170" r="31"/>
+        </clipPath>
+        <clipPath id="clip-reye">
+          <circle cx="254" cy="170" r="31"/>
+        </clipPath>
       </defs>
 
       <!-- Ground shadow -->
-      <ellipse cx="210" cy="648" rx="120" ry="16" fill="rgba(0,0,0,0.22)"/>
+      <ellipse cx="210" cy="664" rx="118" ry="15" fill="rgba(0,0,0,0.22)"/>
 
       <!-- ══ ANTENNA ══ -->
-      <rect x="206" y="54" width="8" height="70" rx="4" fill="#1E3040"/>
+      <rect x="206" y="54" width="8" height="68" rx="4" fill="#1E3040"/>
       <circle cx="210" cy="44" r="24" fill="url(#rg-pink)" filter="url(#ant-glow)" stroke="#FF3A80" stroke-width="2.5"/>
       <circle cx="201" cy="35" r="9" fill="rgba(255,255,255,0.68)"/>
 
-      <!-- ══ HEAD ══ -->
-      <rect x="80" y="74" width="260" height="222" rx="56" fill="url(#rg-body)" filter="url(#sf)"/>
-      <!-- Head highlight gloss -->
-      <ellipse cx="145" cy="103" rx="65" ry="30" fill="rgba(255,255,255,0.15)" transform="rotate(-12 145 103)"/>
+      <!-- ══ HEAD (teal base + gold dome cap) ══ -->
+      <g filter="url(#sf)">
+        <rect x="80" y="74" width="260" height="222" rx="56" fill="url(#rg-body)"/>
+        <!-- Gold dome covers the top half of the head -->
+        <g clip-path="url(#clip-head)">
+          <ellipse cx="210" cy="82" rx="122" ry="72" fill="url(#rg-gold)"/>
+          <!-- Dome gloss highlight -->
+          <ellipse cx="165" cy="96" rx="44" ry="22" fill="rgba(255,255,255,0.28)" transform="rotate(-14 165 96)"/>
+        </g>
+      </g>
 
-      <!-- ══ EARS (gold bumps, sides of head) ══ -->
+      <!-- ══ EARS (dark teal flat panels, sides of head) ══ -->
       <g id="part-ears">
-        <ellipse cx="82" cy="192" rx="29" ry="38" fill="url(#rg-gold)" stroke="#9A6C00" stroke-width="2.5"/>
-        <ellipse cx="74" cy="180" rx="11" ry="14" fill="rgba(255,255,255,0.45)"/>
-        <ellipse cx="338" cy="192" rx="29" ry="38" fill="url(#rg-gold)" stroke="#9A6C00" stroke-width="2.5"/>
-        <ellipse cx="330" cy="180" rx="11" ry="14" fill="rgba(255,255,255,0.45)"/>
+        <ellipse cx="82" cy="192" rx="28" ry="36" fill="url(#rg-dark-ear)" stroke="#124460" stroke-width="2.5"/>
+        <ellipse cx="75" cy="181" rx="10" ry="13" fill="rgba(255,255,255,0.32)"/>
+        <ellipse cx="338" cy="192" rx="28" ry="36" fill="url(#rg-dark-ear)" stroke="#124460" stroke-width="2.5"/>
+        <ellipse cx="331" cy="181" rx="10" ry="13" fill="rgba(255,255,255,0.32)"/>
       </g>
 
       <!-- ══ FACE PANEL (yellow) ══ -->
-      <rect x="110" y="94" width="200" height="188" rx="34" fill="url(#rg-panel)" stroke="#A87400" stroke-width="3"/>
-      <!-- Subtle inner rim -->
-      <rect x="114" y="98" width="192" height="180" rx="31" fill="none" stroke="rgba(255,230,110,0.35)" stroke-width="2.5"/>
+      <rect x="112" y="108" width="196" height="180" rx="32" fill="url(#rg-panel)" stroke="#A87400" stroke-width="3"/>
+      <rect x="116" y="112" width="188" height="172" rx="29" fill="none" stroke="rgba(255,230,110,0.38)" stroke-width="2.5"/>
 
       <!-- ══ EYES ══ -->
       <g id="part-eyes">
-        <!-- Left eye socket -->
-        <circle cx="166" cy="170" r="35" fill="#152030"/>
-        <!-- Left white -->
+        <!-- Left eye -->
+        <circle cx="166" cy="170" r="35" fill="#122030"/>
         <circle cx="166" cy="170" r="31" fill="url(#rg-eyewhite)"/>
-        <!-- Left iris group — transform updated by JS for eye tracking -->
+        <!-- Iris group — both irises share same translation (no crossing) -->
         <g id="left-iris-g">
           <circle cx="166" cy="170" r="20" fill="url(#rg-iris)"/>
           <circle cx="166" cy="170" r="13" fill="#081420"/>
           <circle cx="156" cy="161" r="8"   fill="rgba(255,255,255,0.9)"/>
           <circle cx="174" cy="178" r="3.5" fill="rgba(255,255,255,0.65)"/>
         </g>
-        <!-- Left blink lid — ry animated by JS -->
-        <ellipse id="left-lid" cx="166" cy="170" rx="32" ry="0" fill="#152030"/>
+        <!-- Eyelid: clipped rect sweeps from top down (natural blink) -->
+        <g clip-path="url(#clip-leye)">
+          <rect id="left-lid-rect" x="135" y="139" width="62" height="0" fill="#122030"/>
+        </g>
 
-        <!-- Right eye socket -->
-        <circle cx="254" cy="170" r="35" fill="#152030"/>
-        <!-- Right white -->
+        <!-- Right eye -->
+        <circle cx="254" cy="170" r="35" fill="#122030"/>
         <circle cx="254" cy="170" r="31" fill="url(#rg-eyewhite)"/>
-        <!-- Right iris group -->
         <g id="right-iris-g">
           <circle cx="254" cy="170" r="20" fill="url(#rg-iris)"/>
           <circle cx="254" cy="170" r="13" fill="#081420"/>
           <circle cx="244" cy="161" r="8"   fill="rgba(255,255,255,0.9)"/>
           <circle cx="262" cy="178" r="3.5" fill="rgba(255,255,255,0.65)"/>
         </g>
-        <!-- Right blink lid -->
-        <ellipse id="right-lid" cx="254" cy="170" rx="32" ry="0" fill="#152030"/>
+        <g clip-path="url(#clip-reye)">
+          <rect id="right-lid-rect" x="223" y="139" width="62" height="0" fill="#122030"/>
+        </g>
       </g>
 
       <!-- ══ NOSE ══ -->
       <g id="part-nose">
-        <circle cx="210" cy="216" r="14" fill="url(#rg-nose)" stroke="#8A1000" stroke-width="1.5"/>
+        <circle cx="210" cy="216" r="13" fill="url(#rg-nose)" stroke="#8A1000" stroke-width="1.5"/>
         <circle cx="204" cy="209" r="5"  fill="rgba(255,255,255,0.55)"/>
       </g>
 
-      <!-- ══ CHEEK BLUSHES ══ -->
-      <ellipse cx="138" cy="224" rx="28" ry="21" fill="#FF9999" opacity="0.74"/>
-      <ellipse cx="282" cy="224" rx="28" ry="21" fill="#FF9999" opacity="0.74"/>
+      <!-- ══ CHEEKS ══ -->
+      <ellipse cx="138" cy="226" rx="26" ry="20" fill="#FF9999" opacity="0.76"/>
+      <ellipse cx="282" cy="226" rx="26" ry="20" fill="#FF9999" opacity="0.76"/>
 
-      <!-- ══ SMILE — upward U-arc = happy face ══ -->
-      <!-- Q control point has higher y (lower on screen) than endpoints = curves down = smile -->
+      <!-- ══ SMILE — U-shape = happy ══ -->
+      <!-- Q control point below endpoints = curve bows down = smile -->
       <g id="part-mouth">
-        <path d="M 172 258 Q 210 292 248 258"
-              stroke="#CC1A1A" stroke-width="9.5" fill="none" stroke-linecap="round"/>
+        <path d="M 172 256 Q 210 290 248 256"
+              stroke="#CC1818" stroke-width="9.5" fill="none" stroke-linecap="round"/>
       </g>
 
-      <!-- ══ SHOULDER CONNECTOR (head → body) ══ -->
-      <rect x="150" y="292" width="120" height="28" rx="14" fill="#2A8BAA"/>
+      <!-- ══ SHOULDER CONNECTOR ══ -->
+      <rect x="150" y="293" width="120" height="28" rx="14" fill="#2A8BAA"/>
 
       <!-- ══ BODY ══ -->
-      <rect x="90" y="306" width="240" height="212" rx="48" fill="url(#rg-body)" filter="url(#sf)"/>
-      <!-- Body gloss highlight -->
-      <ellipse cx="150" cy="334" rx="54" ry="25" fill="rgba(255,255,255,0.13)" transform="rotate(-9 150 334)"/>
+      <rect x="90" y="308" width="240" height="215" rx="48" fill="url(#rg-body)" filter="url(#sf)"/>
+      <ellipse cx="150" cy="336" rx="52" ry="24" fill="rgba(255,255,255,0.13)" transform="rotate(-9 150 336)"/>
 
-      <!-- Shoulder caps (gold) -->
-      <circle cx="92"  cy="325" r="25" fill="url(#rg-gold)" stroke="#9A6C00" stroke-width="2"/>
-      <circle cx="86"  cy="315" r="9"  fill="rgba(255,255,255,0.4)"/>
-      <circle cx="328" cy="325" r="25" fill="url(#rg-gold)" stroke="#9A6C00" stroke-width="2"/>
-      <circle cx="322" cy="315" r="9"  fill="rgba(255,255,255,0.4)"/>
+      <!-- ══ SHOULDER JOINTS (dark, where arms meet body) ══ -->
+      <circle cx="92"  cy="332" r="24" fill="url(#rg-dark-ear)" stroke="#104060" stroke-width="2"/>
+      <circle cx="328" cy="332" r="24" fill="url(#rg-dark-ear)" stroke="#104060" stroke-width="2"/>
 
-      <!-- ══ TUMMY SCREEN ══ -->
+      <!-- ══ TUMMY (yellow square with white checkmark) ══ -->
       <g id="part-tummy">
-        <rect x="130" y="342" width="160" height="144" rx="24" fill="#0A1B2A"/>
-        <rect x="138" y="350" width="144" height="128" rx="20" fill="url(#rg-screen)"/>
-        <!-- Scan lines -->
-        <rect x="138" y="372" width="144" height="3" fill="rgba(0,0,0,0.18)"/>
-        <rect x="138" y="393" width="144" height="3" fill="rgba(0,0,0,0.18)"/>
-        <rect x="138" y="414" width="144" height="3" fill="rgba(0,0,0,0.18)"/>
-        <rect x="138" y="435" width="144" height="3" fill="rgba(0,0,0,0.18)"/>
-        <!-- Pulsing glow dot -->
-        <circle cx="210" cy="414" r="22" fill="rgba(255,255,255,0.13)"/>
-        <circle cx="210" cy="414" r="14" fill="rgba(255,255,255,0.22)"/>
-        <circle cx="210" cy="414" r="7"  fill="rgba(255,255,255,0.75)" id="tummy-dot"/>
-        <text x="210" y="364" text-anchor="middle" font-size="10"
-              fill="rgba(0,50,40,0.45)" font-family="monospace" letter-spacing="2">COSMO</text>
+        <rect x="158" y="368" width="104" height="104" rx="20"
+              fill="url(#rg-gold)" stroke="#A07000" stroke-width="2.5"/>
+        <rect x="162" y="372" width="96" height="96" rx="17"
+              fill="none" stroke="rgba(255,230,100,0.4)" stroke-width="2"/>
+        <!-- Checkmark ✓ -->
+        <path d="M 178 425 L 198 448 L 246 393"
+              stroke="white" stroke-width="11" fill="none"
+              stroke-linecap="round" stroke-linejoin="round"/>
       </g>
 
-      <!-- ══ ARMS ══ -->
-      <rect x="20"  y="316" width="84" height="42" rx="21" fill="url(#rg-body)"/>
-      <rect x="316" y="316" width="84" height="42" rx="21" fill="url(#rg-body)"/>
+      <!-- ══ ARMS (hanging DOWN from shoulder joints) ══ -->
+      <!-- Left arm tube -->
+      <rect x="52" y="326" width="44" height="122" rx="22" fill="url(#rg-body)"/>
+      <!-- Right arm tube -->
+      <rect x="324" y="326" width="44" height="122" rx="22" fill="url(#rg-body)"/>
 
-      <!-- ══ HANDS ══ -->
+      <!-- ══ HANDS (dark oval mitts with 3 finger bumps) ══ -->
       <g id="part-hands">
-        <circle cx="34"  cy="337" r="38" fill="url(#rg-hand)" stroke="#081C28" stroke-width="2"/>
-        <circle cx="24"  cy="325" r="13" fill="rgba(255,255,255,0.2)"/>
-        <circle cx="386" cy="337" r="38" fill="url(#rg-hand)" stroke="#081C28" stroke-width="2"/>
-        <circle cx="376" cy="325" r="13" fill="rgba(255,255,255,0.2)"/>
+        <!-- Left hand -->
+        <ellipse cx="74" cy="468" rx="34" ry="30" fill="url(#rg-hand)" stroke="#071C2C" stroke-width="2"/>
+        <!-- Left finger bumps -->
+        <circle cx="56" cy="448" r="13" fill="#16506A"/>
+        <circle cx="74" cy="442" r="13" fill="#16506A"/>
+        <circle cx="92" cy="448" r="13" fill="#16506A"/>
+        <!-- Left hand shine -->
+        <ellipse cx="62" cy="456" rx="9" ry="7" fill="rgba(255,255,255,0.2)"/>
+
+        <!-- Right hand -->
+        <ellipse cx="346" cy="468" rx="34" ry="30" fill="url(#rg-hand)" stroke="#071C2C" stroke-width="2"/>
+        <!-- Right finger bumps -->
+        <circle cx="328" cy="448" r="13" fill="#16506A"/>
+        <circle cx="346" cy="442" r="13" fill="#16506A"/>
+        <circle cx="364" cy="448" r="13" fill="#16506A"/>
+        <!-- Right hand shine -->
+        <ellipse cx="334" cy="456" rx="9" ry="7" fill="rgba(255,255,255,0.2)"/>
       </g>
 
-      <!-- ══ KNEE CAPS ══ -->
-      <circle cx="170" cy="515" r="21" fill="url(#rg-gold)" stroke="#9A6C00" stroke-width="2"/>
-      <circle cx="163" cy="507" r="8"  fill="rgba(255,255,255,0.38)"/>
-      <circle cx="250" cy="515" r="21" fill="url(#rg-gold)" stroke="#9A6C00" stroke-width="2"/>
-      <circle cx="243" cy="507" r="8"  fill="rgba(255,255,255,0.38)"/>
+      <!-- ══ KNEE CAPS (gold) ══ -->
+      <circle cx="170" cy="522" r="21" fill="url(#rg-gold)" stroke="#9A6C00" stroke-width="2"/>
+      <circle cx="163" cy="514" r="8"  fill="rgba(255,255,255,0.38)"/>
+      <circle cx="250" cy="522" r="21" fill="url(#rg-gold)" stroke="#9A6C00" stroke-width="2"/>
+      <circle cx="243" cy="514" r="8"  fill="rgba(255,255,255,0.38)"/>
 
       <!-- ══ LEGS ══ -->
-      <rect x="146" y="511" width="50" height="82" rx="24" fill="url(#rg-body)"/>
-      <rect x="224" y="511" width="50" height="82" rx="24" fill="url(#rg-body)"/>
+      <rect x="147" y="518" width="50" height="82" rx="24" fill="url(#rg-body)"/>
+      <rect x="223" y="518" width="50" height="82" rx="24" fill="url(#rg-body)"/>
+      <!-- Leg stripes -->
+      <rect x="149" y="542" width="46" height="7" rx="3" fill="rgba(10,60,100,0.22)"/>
+      <rect x="149" y="558" width="46" height="7" rx="3" fill="rgba(10,60,100,0.22)"/>
+      <rect x="149" y="574" width="46" height="7" rx="3" fill="rgba(10,60,100,0.22)"/>
+      <rect x="225" y="542" width="46" height="7" rx="3" fill="rgba(10,60,100,0.22)"/>
+      <rect x="225" y="558" width="46" height="7" rx="3" fill="rgba(10,60,100,0.22)"/>
+      <rect x="225" y="574" width="46" height="7" rx="3" fill="rgba(10,60,100,0.22)"/>
 
-      <!-- ══ FEET ══ -->
+      <!-- ══ FEET (gold) ══ -->
       <g id="part-feet">
-        <rect x="120" y="578" width="96" height="48" rx="22" fill="url(#rg-gold)" stroke="#9A6C00" stroke-width="2.5"/>
-        <rect x="128" y="583" width="48" height="20" rx="10" fill="rgba(255,255,255,0.32)"/>
-        <rect x="204" y="578" width="96" height="48" rx="22" fill="url(#rg-gold)" stroke="#9A6C00" stroke-width="2.5"/>
-        <rect x="212" y="583" width="48" height="20" rx="10" fill="rgba(255,255,255,0.32)"/>
+        <rect x="120" y="586" width="96" height="48" rx="22" fill="url(#rg-gold)" stroke="#9A6C00" stroke-width="2.5"/>
+        <rect x="128" y="592" width="48" height="18" rx="9"  fill="rgba(255,255,255,0.32)"/>
+        <rect x="204" y="586" width="96" height="48" rx="22" fill="url(#rg-gold)" stroke="#9A6C00" stroke-width="2.5"/>
+        <rect x="212" y="592" width="48" height="18" rx="9"  fill="rgba(255,255,255,0.32)"/>
       </g>
     </svg>
   </div>
 
-  <!-- ── Splash UI ── -->
+  <!-- ── Splash ── -->
   <div id="splash" class="ui-layer active">
     <div class="splash-glass">
       <h1 class="splash-title">Meet Cosmo!</h1>
@@ -215,24 +244,17 @@
     </div>
   </div>
 
-  <!-- ── Game UI ── -->
+  <!-- ── Game ── -->
   <div id="game" class="ui-layer hidden">
     <div class="game-header">
-      <div class="mode-badge" id="mode-badge">🔍 Explore</div>
+      <!-- Single info bar shows part name (explore) or question (quiz) -->
+      <div class="info-bar" id="info-bar">Tap any part of Cosmo!</div>
       <div class="score-area hidden" id="score-area"><span id="stars"></span></div>
-      <button class="btn-quit" id="btn-quit">Quit</button>
-    </div>
-    <div class="quiz-panel hidden" id="quiz-panel">
-      <p id="quiz-q"></p>
+      <button class="btn-back" id="btn-quit">&#8592; Back</button>
     </div>
   </div>
 
-  <!-- ── Label bubble ── -->
-  <div id="label-bubble" class="label-bubble hidden">
-    <span id="bubble-text"></span>
-  </div>
-
-  <!-- ── FX layer (confetti) ── -->
+  <!-- FX layer -->
   <div id="html-fx" aria-hidden="true"></div>
 
   <script src="app.js"></script>

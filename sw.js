@@ -1,4 +1,4 @@
-const CACHE = 'meet-cosmo-v6';
+const CACHE = 'meet-cosmo-v7';
 const ASSETS = [
   '/', '/index.html', '/style.css', '/app.js', '/manifest.json',
   '/assets/icons/icon-192.png', '/assets/icons/icon-512.png',

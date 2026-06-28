@@ -928,7 +928,10 @@ const sfx = {
 // ── Screen management ─────────────────────────────────────────────────────────
 function showScreen(id) {
   currentScreen = id;
-  document.querySelectorAll('.overlay').forEach(o => o.classList.remove('active'));
+  document.querySelectorAll('.overlay').forEach(o => {
+    o.classList.remove('active');
+    o.classList.add('hidden');
+  });
   const el = document.getElementById(id);
   if (el) { el.classList.remove('hidden'); el.classList.add('active'); }
 

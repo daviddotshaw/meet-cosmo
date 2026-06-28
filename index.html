@@ -14,23 +14,209 @@
 </head>
 <body>
 
-  <!-- Three.js renders here — always full screen behind everything -->
-  <canvas id="cosmo-canvas"></canvas>
+  <!-- Animated star canvas background -->
+  <canvas id="star-canvas"></canvas>
 
-  <!-- ─── Splash overlay ─── -->
-  <div id="splash" class="overlay active">
+  <!-- Cosmo SVG illustration — always visible, centre-screen -->
+  <div id="cosmo-wrap">
+    <svg id="cosmo-svg" viewBox="0 0 420 660" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <radialGradient id="rg-body" cx="35%" cy="28%" r="65%">
+          <stop offset="0%" stop-color="#82D8EE"/>
+          <stop offset="100%" stop-color="#2B94B8"/>
+        </radialGradient>
+        <radialGradient id="rg-gold" cx="30%" cy="22%" r="70%">
+          <stop offset="0%" stop-color="#FFEA72"/>
+          <stop offset="100%" stop-color="#B88000"/>
+        </radialGradient>
+        <radialGradient id="rg-panel" cx="36%" cy="25%" r="64%">
+          <stop offset="0%" stop-color="#FFF082"/>
+          <stop offset="100%" stop-color="#CF9800"/>
+        </radialGradient>
+        <radialGradient id="rg-eyewhite" cx="28%" cy="22%" r="72%">
+          <stop offset="0%" stop-color="#FFFFFF"/>
+          <stop offset="100%" stop-color="#D6EEFF"/>
+        </radialGradient>
+        <radialGradient id="rg-iris" cx="38%" cy="32%" r="62%">
+          <stop offset="0%" stop-color="#5ACCE8"/>
+          <stop offset="100%" stop-color="#0F5268"/>
+        </radialGradient>
+        <radialGradient id="rg-hand" cx="32%" cy="25%" r="68%">
+          <stop offset="0%" stop-color="#2A7898"/>
+          <stop offset="100%" stop-color="#092C3E"/>
+        </radialGradient>
+        <radialGradient id="rg-screen" cx="26%" cy="20%" r="74%">
+          <stop offset="0%" stop-color="#3DDCBC"/>
+          <stop offset="100%" stop-color="#069474"/>
+        </radialGradient>
+        <radialGradient id="rg-pink" cx="30%" cy="26%" r="70%">
+          <stop offset="0%" stop-color="#FFBDD0"/>
+          <stop offset="100%" stop-color="#FF4A88"/>
+        </radialGradient>
+        <radialGradient id="rg-nose" cx="33%" cy="26%" r="67%">
+          <stop offset="0%" stop-color="#FF7766"/>
+          <stop offset="100%" stop-color="#AA1200"/>
+        </radialGradient>
+        <filter id="sf" x="-30%" y="-30%" width="160%" height="160%">
+          <feDropShadow dx="2" dy="7" stdDeviation="11" flood-color="#000" flood-opacity="0.38"/>
+        </filter>
+        <filter id="ant-glow">
+          <feGaussianBlur stdDeviation="5" result="b"/>
+          <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+        </filter>
+      </defs>
+
+      <!-- Ground shadow -->
+      <ellipse cx="210" cy="648" rx="120" ry="16" fill="rgba(0,0,0,0.22)"/>
+
+      <!-- ══ ANTENNA ══ -->
+      <rect x="206" y="54" width="8" height="70" rx="4" fill="#1E3040"/>
+      <circle cx="210" cy="44" r="24" fill="url(#rg-pink)" filter="url(#ant-glow)" stroke="#FF3A80" stroke-width="2.5"/>
+      <circle cx="201" cy="35" r="9" fill="rgba(255,255,255,0.68)"/>
+
+      <!-- ══ HEAD ══ -->
+      <rect x="80" y="74" width="260" height="222" rx="56" fill="url(#rg-body)" filter="url(#sf)"/>
+      <!-- Head highlight gloss -->
+      <ellipse cx="145" cy="103" rx="65" ry="30" fill="rgba(255,255,255,0.15)" transform="rotate(-12 145 103)"/>
+
+      <!-- ══ EARS (gold bumps, sides of head) ══ -->
+      <g id="part-ears">
+        <ellipse cx="82" cy="192" rx="29" ry="38" fill="url(#rg-gold)" stroke="#9A6C00" stroke-width="2.5"/>
+        <ellipse cx="74" cy="180" rx="11" ry="14" fill="rgba(255,255,255,0.45)"/>
+        <ellipse cx="338" cy="192" rx="29" ry="38" fill="url(#rg-gold)" stroke="#9A6C00" stroke-width="2.5"/>
+        <ellipse cx="330" cy="180" rx="11" ry="14" fill="rgba(255,255,255,0.45)"/>
+      </g>
+
+      <!-- ══ FACE PANEL (yellow) ══ -->
+      <rect x="110" y="94" width="200" height="188" rx="34" fill="url(#rg-panel)" stroke="#A87400" stroke-width="3"/>
+      <!-- Subtle inner rim -->
+      <rect x="114" y="98" width="192" height="180" rx="31" fill="none" stroke="rgba(255,230,110,0.35)" stroke-width="2.5"/>
+
+      <!-- ══ EYES ══ -->
+      <g id="part-eyes">
+        <!-- Left eye socket -->
+        <circle cx="166" cy="170" r="35" fill="#152030"/>
+        <!-- Left white -->
+        <circle cx="166" cy="170" r="31" fill="url(#rg-eyewhite)"/>
+        <!-- Left iris group — transform updated by JS for eye tracking -->
+        <g id="left-iris-g">
+          <circle cx="166" cy="170" r="20" fill="url(#rg-iris)"/>
+          <circle cx="166" cy="170" r="13" fill="#081420"/>
+          <circle cx="156" cy="161" r="8"   fill="rgba(255,255,255,0.9)"/>
+          <circle cx="174" cy="178" r="3.5" fill="rgba(255,255,255,0.65)"/>
+        </g>
+        <!-- Left blink lid — ry animated by JS -->
+        <ellipse id="left-lid" cx="166" cy="170" rx="32" ry="0" fill="#152030"/>
+
+        <!-- Right eye socket -->
+        <circle cx="254" cy="170" r="35" fill="#152030"/>
+        <!-- Right white -->
+        <circle cx="254" cy="170" r="31" fill="url(#rg-eyewhite)"/>
+        <!-- Right iris group -->
+        <g id="right-iris-g">
+          <circle cx="254" cy="170" r="20" fill="url(#rg-iris)"/>
+          <circle cx="254" cy="170" r="13" fill="#081420"/>
+          <circle cx="244" cy="161" r="8"   fill="rgba(255,255,255,0.9)"/>
+          <circle cx="262" cy="178" r="3.5" fill="rgba(255,255,255,0.65)"/>
+        </g>
+        <!-- Right blink lid -->
+        <ellipse id="right-lid" cx="254" cy="170" rx="32" ry="0" fill="#152030"/>
+      </g>
+
+      <!-- ══ NOSE ══ -->
+      <g id="part-nose">
+        <circle cx="210" cy="216" r="14" fill="url(#rg-nose)" stroke="#8A1000" stroke-width="1.5"/>
+        <circle cx="204" cy="209" r="5"  fill="rgba(255,255,255,0.55)"/>
+      </g>
+
+      <!-- ══ CHEEK BLUSHES ══ -->
+      <ellipse cx="138" cy="224" rx="28" ry="21" fill="#FF9999" opacity="0.74"/>
+      <ellipse cx="282" cy="224" rx="28" ry="21" fill="#FF9999" opacity="0.74"/>
+
+      <!-- ══ SMILE — upward U-arc = happy face ══ -->
+      <!-- Q control point has higher y (lower on screen) than endpoints = curves down = smile -->
+      <g id="part-mouth">
+        <path d="M 172 258 Q 210 292 248 258"
+              stroke="#CC1A1A" stroke-width="9.5" fill="none" stroke-linecap="round"/>
+      </g>
+
+      <!-- ══ SHOULDER CONNECTOR (head → body) ══ -->
+      <rect x="150" y="292" width="120" height="28" rx="14" fill="#2A8BAA"/>
+
+      <!-- ══ BODY ══ -->
+      <rect x="90" y="306" width="240" height="212" rx="48" fill="url(#rg-body)" filter="url(#sf)"/>
+      <!-- Body gloss highlight -->
+      <ellipse cx="150" cy="334" rx="54" ry="25" fill="rgba(255,255,255,0.13)" transform="rotate(-9 150 334)"/>
+
+      <!-- Shoulder caps (gold) -->
+      <circle cx="92"  cy="325" r="25" fill="url(#rg-gold)" stroke="#9A6C00" stroke-width="2"/>
+      <circle cx="86"  cy="315" r="9"  fill="rgba(255,255,255,0.4)"/>
+      <circle cx="328" cy="325" r="25" fill="url(#rg-gold)" stroke="#9A6C00" stroke-width="2"/>
+      <circle cx="322" cy="315" r="9"  fill="rgba(255,255,255,0.4)"/>
+
+      <!-- ══ TUMMY SCREEN ══ -->
+      <g id="part-tummy">
+        <rect x="130" y="342" width="160" height="144" rx="24" fill="#0A1B2A"/>
+        <rect x="138" y="350" width="144" height="128" rx="20" fill="url(#rg-screen)"/>
+        <!-- Scan lines -->
+        <rect x="138" y="372" width="144" height="3" fill="rgba(0,0,0,0.18)"/>
+        <rect x="138" y="393" width="144" height="3" fill="rgba(0,0,0,0.18)"/>
+        <rect x="138" y="414" width="144" height="3" fill="rgba(0,0,0,0.18)"/>
+        <rect x="138" y="435" width="144" height="3" fill="rgba(0,0,0,0.18)"/>
+        <!-- Pulsing glow dot -->
+        <circle cx="210" cy="414" r="22" fill="rgba(255,255,255,0.13)"/>
+        <circle cx="210" cy="414" r="14" fill="rgba(255,255,255,0.22)"/>
+        <circle cx="210" cy="414" r="7"  fill="rgba(255,255,255,0.75)" id="tummy-dot"/>
+        <text x="210" y="364" text-anchor="middle" font-size="10"
+              fill="rgba(0,50,40,0.45)" font-family="monospace" letter-spacing="2">COSMO</text>
+      </g>
+
+      <!-- ══ ARMS ══ -->
+      <rect x="20"  y="316" width="84" height="42" rx="21" fill="url(#rg-body)"/>
+      <rect x="316" y="316" width="84" height="42" rx="21" fill="url(#rg-body)"/>
+
+      <!-- ══ HANDS ══ -->
+      <g id="part-hands">
+        <circle cx="34"  cy="337" r="38" fill="url(#rg-hand)" stroke="#081C28" stroke-width="2"/>
+        <circle cx="24"  cy="325" r="13" fill="rgba(255,255,255,0.2)"/>
+        <circle cx="386" cy="337" r="38" fill="url(#rg-hand)" stroke="#081C28" stroke-width="2"/>
+        <circle cx="376" cy="325" r="13" fill="rgba(255,255,255,0.2)"/>
+      </g>
+
+      <!-- ══ KNEE CAPS ══ -->
+      <circle cx="170" cy="515" r="21" fill="url(#rg-gold)" stroke="#9A6C00" stroke-width="2"/>
+      <circle cx="163" cy="507" r="8"  fill="rgba(255,255,255,0.38)"/>
+      <circle cx="250" cy="515" r="21" fill="url(#rg-gold)" stroke="#9A6C00" stroke-width="2"/>
+      <circle cx="243" cy="507" r="8"  fill="rgba(255,255,255,0.38)"/>
+
+      <!-- ══ LEGS ══ -->
+      <rect x="146" y="511" width="50" height="82" rx="24" fill="url(#rg-body)"/>
+      <rect x="224" y="511" width="50" height="82" rx="24" fill="url(#rg-body)"/>
+
+      <!-- ══ FEET ══ -->
+      <g id="part-feet">
+        <rect x="120" y="578" width="96" height="48" rx="22" fill="url(#rg-gold)" stroke="#9A6C00" stroke-width="2.5"/>
+        <rect x="128" y="583" width="48" height="20" rx="10" fill="rgba(255,255,255,0.32)"/>
+        <rect x="204" y="578" width="96" height="48" rx="22" fill="url(#rg-gold)" stroke="#9A6C00" stroke-width="2.5"/>
+        <rect x="212" y="583" width="48" height="20" rx="10" fill="rgba(255,255,255,0.32)"/>
+      </g>
+    </svg>
+  </div>
+
+  <!-- ── Splash UI ── -->
+  <div id="splash" class="ui-layer active">
     <div class="splash-glass">
       <h1 class="splash-title">Meet Cosmo!</h1>
-      <p class="splash-sub">Your robot friend — learning body parts has never looked this good.</p>
+      <p class="splash-sub">Your friendly robot pal</p>
       <div id="splash-btns" class="splash-btns hidden">
         <button class="btn btn-explore" id="btn-explore">🔍 Explore</button>
-        <button class="btn btn-quiz"    id="btn-quiz">⭐ Quiz Time!</button>
+        <button class="btn btn-quiz"    id="btn-quiz">⭐ Quiz!</button>
       </div>
     </div>
   </div>
 
-  <!-- ─── Game overlay (pointer-events: none so canvas gets clicks) ─── -->
-  <div id="game" class="overlay hidden">
+  <!-- ── Game UI ── -->
+  <div id="game" class="ui-layer hidden">
     <div class="game-header">
       <div class="mode-badge" id="mode-badge">🔍 Explore</div>
       <div class="score-area hidden" id="score-area"><span id="stars"></span></div>
@@ -41,15 +227,14 @@
     </div>
   </div>
 
-  <!-- ─── Label bubble (centre-top, over canvas) ─── -->
+  <!-- ── Label bubble ── -->
   <div id="label-bubble" class="label-bubble hidden">
     <span id="bubble-text"></span>
   </div>
 
-  <!-- ─── HTML FX layer (confetti) ─── -->
+  <!-- ── FX layer (confetti) ── -->
   <div id="html-fx" aria-hidden="true"></div>
 
-  <script src="three.min.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

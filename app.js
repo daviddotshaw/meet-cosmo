@@ -1,25 +1,23 @@
 'use strict';
 // ═══════════════════════════════════════════════════════════════════════════
-//  Meet Cosmo! — 3D kids body-parts learning game
-//  Three.js r152 · Web Speech API · Web Audio API
+//  Meet Cosmo! — SVG character, Canvas starfield, Web Speech + Web Audio
 // ═══════════════════════════════════════════════════════════════════════════
 
-// ── Body parts ──────────────────────────────────────────────────────────────
 const PARTS = [
   { id:'ears',  label:'Ears',
-    explore:'These are my ears! I can hear everything you say! Can you wiggle your ears? I cannot wiggle mine at all — robots are rubbish at that!',
+    explore:'These are my ears! I can hear everything you say! Can you wiggle your ears? I cannot wiggle mine — robots are terrible at that!',
     quiz:'Can you find my ears?' },
   { id:'eyes',  label:'Eyes',
-    explore:'These are my eyes! I can see your lovely face right now! How many eyes do you have? I have two, just like you!',
+    explore:'These are my eyes! I can see your lovely face right now! I love looking at all the colours and shapes around me. What can you see right now?',
     quiz:'Can you find my eyes?' },
   { id:'nose',  label:'Nose',
-    explore:'This is my nose! Your nose can smell wonderful things like cookies and flowers. What is your favourite smell?',
+    explore:'This is my nose! Your nose can smell wonderful things like cookies and flowers and fresh rain. What is your favourite smell?',
     quiz:'Can you tap my nose?' },
   { id:'mouth', label:'Mouth',
     explore:'This is my mouth! I use it to talk and sing and smile at you! Can you give me your biggest smile right now?',
     quiz:'Can you find my mouth?' },
   { id:'tummy', label:'Tummy',
-    explore:'This is my tummy! My glowing power core lives right in here. Do you get hungry in your tummy when you need lunch?',
+    explore:'This is my tummy! I have a little glowing light inside my tummy — can you see it on my screen? Your tummy tells you when you are hungry. Does your tummy ever rumble?',
     quiz:'Can you find my tummy?' },
   { id:'hands', label:'Hands',
     explore:'These are my hands! I love to wave hello to all my friends. Can you wave your hands back at me right now?',
@@ -29,969 +27,432 @@ const PARTS = [
     quiz:'Can you find my feet?' },
 ];
 
-const BURST_COLS  = [0xFF6B6B, 0xF7DC6F, 0x4ECDC4, 0xA29BFE, 0xFD79A8, 0x00CEC9, 0x55EFC4];
-const CONFETTI_CSS = ['#FF6B6B','#F7DC6F','#4ECDC4','#A29BFE','#FD79A8','#00CEC9','#55EFC4'];
+// ── State ───────────────────────────────────────────────────────────────────
+let mode          = 'explore';   // 'explore' | 'quiz'
+let quizParts     = [];
+let quizIdx       = 0;
+let score         = 0;
+let speaking      = false;
+let currentScreen = 'splash';
+let blinkTimer    = null;
 
-// ── App state ────────────────────────────────────────────────────────────────
-let currentScreen = 'splash';  // 'splash' | 'game'
-let mode          = 'explore'; // 'explore' | 'quiz'
-let busy          = false;
-let quizQueue     = [];
-let currentPart   = null;
-let quizScore     = 0;
+// ── DOM refs ────────────────────────────────────────────────────────────────
+const cosmoSvg    = document.getElementById('cosmo-svg');
+const labelBubble = document.getElementById('label-bubble');
+const bubbleText  = document.getElementById('bubble-text');
+const htmlFx      = document.getElementById('html-fx');
+const quizPanel   = document.getElementById('quiz-panel');
+const quizQ       = document.getElementById('quiz-q');
+const scoreArea   = document.getElementById('score-area');
+const starsEl     = document.getElementById('stars');
+const modeBadge   = document.getElementById('mode-badge');
+const splashBtns  = document.getElementById('splash-btns');
 
-// ── Three.js globals ─────────────────────────────────────────────────────────
-let scene, camera, renderer, clock;
-let cosmoRoot;              // root Group for the whole robot
-let partGroups = {};        // partId → THREE.Group (for raycasting)
-let hitMeshes  = [];        // flat list of hittable meshes
-let anims      = [];        // running animations: fn(dt) → keep?
-let burstParticles = [];    // live 3D burst particles
-let mouseNDC   = new THREE.Vector2(0, 0);
-let idleT      = 0;
-let blinkCountdown = 3;
-let isSpeaking = false;
-let camZ       = 8.5;       // current camera Z (lerped)
-let camZTarget = 8.5;
+// SVG viewBox dimensions (must match the SVG)
+const VBW = 420, VBH = 660;
 
-// ── Materials ────────────────────────────────────────────────────────────────
-let M; // material palette
+// ── Starfield canvas ────────────────────────────────────────────────────────
+(function initStarfield() {
+  const canvas = document.getElementById('star-canvas');
+  const ctx    = canvas.getContext('2d');
 
-function buildMaterials() {
-  const ph = (col, shine, spec) =>
-    new THREE.MeshPhongMaterial({ color: col, shininess: shine, specular: new THREE.Color(spec) });
-  const std = (col, emissive, emInt, metal = 0, rough = 0.5) =>
-    new THREE.MeshStandardMaterial({ color: col, emissive, emissiveIntensity: emInt, metalness: metal, roughness: rough });
-
-  M = {
-    body:     ph(0x5DADE2, 130, 0xBBDDFF),
-    bodyDark: ph(0x1A6FA0, 100, 0x448ABB),
-    gold:     ph(0xF39C12, 240, 0xFFEEAA),
-    dark:     ph(0x1C2B3A, 60,  0x2A4055),
-    darker:   ph(0x0E1824, 40,  0x1A2A3A),
-    nose:     ph(0xE74C3C, 150, 0xFF9999),
-    eyeWhite: ph(0xFFFFFF, 280, 0xFFFFFF),
-    eyeIris:  std(0x2471A3, 0x2471A3, 0.6, 0.1, 0.3),
-    eyePupil: ph(0x080E18, 20,  0x111111),
-    screen:   std(0x1ABC9C, 0x0E8060, 1.1, 0, 0.4),
-    screenDim:std(0x0E5040, 0x073828, 0.4, 0, 0.6),
-    glow:     std(0xF1C40F, 0xF1C40F, 1.5, 0, 1),
-    glowRed:  std(0xFF4444, 0xFF4444, 1.0, 0, 1),
-    chrome:   ph(0xAABBCC, 200, 0xDDEEFF),
-    hit:      new THREE.MeshBasicMaterial({ visible: false }),
-  };
-}
-
-// ── Scene init ───────────────────────────────────────────────────────────────
-function initThree() {
-  clock = new THREE.Clock();
-
-  scene = new THREE.Scene();
-  scene.background = new THREE.Color(0x040810);
-  scene.fog = new THREE.FogExp2(0x040810, 0.014);
-
-  const W = window.innerWidth, H = window.innerHeight;
-  camera = new THREE.PerspectiveCamera(42, W / H, 0.1, 300);
-  camera.position.set(0, 0.2, camZ);
-
-  const canvas = document.getElementById('cosmo-canvas');
-  renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
-  renderer.setSize(W, H);
-  renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
-  renderer.shadowMap.enabled = true;
-  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-  renderer.outputEncoding = THREE.sRGBEncoding;
-
-  addLights();
-  buildStarField();
-  buildMaterials();
-
-  cosmoRoot = buildCosmo();
-  scene.add(cosmoRoot);
-
-  window.addEventListener('resize', onResize);
-  canvas.addEventListener('click',      onCanvasClick);
-  canvas.addEventListener('touchstart', onCanvasTouchStart, { passive: false });
-  window.addEventListener('mousemove',  onMouseMove);
-  window.addEventListener('touchmove',  onTouchMoveForEyes, { passive: true });
-
-  requestAnimationFrame(renderLoop);
-}
-
-// ── Lighting ─────────────────────────────────────────────────────────────────
-function addLights() {
-  // Ambient — deep space blue tint
-  scene.add(new THREE.AmbientLight(0x223366, 1.4));
-
-  // Key — warm upper-right
-  const key = new THREE.DirectionalLight(0xFFEEDD, 2.2);
-  key.position.set(4, 6, 5);
-  key.castShadow = true;
-  key.shadow.mapSize.set(2048, 2048);
-  key.shadow.camera.near = 0.5; key.shadow.camera.far = 20;
-  key.shadow.bias = -0.001;
-  scene.add(key);
-
-  // Fill — cool left
-  const fill = new THREE.DirectionalLight(0x6688FF, 0.7);
-  fill.position.set(-5, 2, 3);
-  scene.add(fill);
-
-  // Rim — cyan from behind-top
-  const rim = new THREE.DirectionalLight(0x00FFEE, 0.55);
-  rim.position.set(0, 5, -7);
-  scene.add(rim);
-
-  // Under-glow — cool purple from below
-  const under = new THREE.DirectionalLight(0x6633BB, 0.35);
-  under.position.set(0, -5, 2);
-  scene.add(under);
-
-  // Screen glow — teal point at Cosmo's belly
-  const scrPt = new THREE.PointLight(0x1ABC9C, 1.2, 5);
-  scrPt.position.set(0, 0, 2.8);
-  scene.add(scrPt);
-
-  // Antenna glow — yellow point at top
-  const antPt = new THREE.PointLight(0xFFDD00, 0.6, 3);
-  antPt.position.set(0, 2.8, 0);
-  scene.add(antPt);
-}
-
-// ── Star field ───────────────────────────────────────────────────────────────
-function makeCircleTexture(size = 64) {
-  const canvas = document.createElement('canvas');
-  canvas.width = canvas.height = size;
-  const ctx = canvas.getContext('2d');
-  const half = size / 2;
-  const grad = ctx.createRadialGradient(half, half, 0, half, half, half);
-  grad.addColorStop(0,   'rgba(255,255,255,1)');
-  grad.addColorStop(0.3, 'rgba(255,255,255,0.9)');
-  grad.addColorStop(1,   'rgba(255,255,255,0)');
-  ctx.fillStyle = grad;
-  ctx.fillRect(0, 0, size, size);
-  return new THREE.CanvasTexture(canvas);
-}
-
-function buildStarField() {
-  // Small stars — plain points, too tiny to see the shape
-  const n = 2500;
-  const pos = new Float32Array(n * 3);
-  const col = new Float32Array(n * 3);
-  for (let i = 0; i < n; i++) {
-    const theta = Math.random() * Math.PI * 2;
-    const phi   = Math.acos(Math.random() * 2 - 1);
-    const r     = 55 + Math.random() * 75;
-    pos[i*3]   = r * Math.sin(phi) * Math.cos(theta);
-    pos[i*3+1] = r * Math.sin(phi) * Math.sin(theta);
-    pos[i*3+2] = r * Math.cos(phi);
-    const t = Math.random();
-    col[i*3] = 0.7 + t * 0.3; col[i*3+1] = 0.8 + t * 0.2; col[i*3+2] = 0.9 + t * 0.1;
+  function resize() {
+    canvas.width  = window.innerWidth;
+    canvas.height = window.innerHeight;
   }
-  const geo = new THREE.BufferGeometry();
-  geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
-  geo.setAttribute('color',    new THREE.BufferAttribute(col, 3));
-  scene.add(new THREE.Points(geo,
-    new THREE.PointsMaterial({ size: 0.22, vertexColors: true, sizeAttenuation: true })));
+  resize();
+  window.addEventListener('resize', resize);
 
-  // Large bright stars — use THREE.Sprite so they're always circular
-  const starTex = makeCircleTexture(32);
-  const spriteMat = new THREE.SpriteMaterial({ map: starTex, color: 0xFFFFFF });
-  for (let i = 0; i < 40; i++) {
-    const sp = new THREE.Sprite(spriteMat);
-    sp.position.set(
-      (Math.random() - 0.5) * 90,
-      (Math.random() - 0.5) * 90,
-      (Math.random() - 0.5) * 50 - 20
-    );
-    sp.scale.setScalar(0.9 + Math.random() * 0.8);
-    scene.add(sp);
-  }
+  const STAR_COUNT = 260;
+  const stars = Array.from({ length: STAR_COUNT }, () => ({
+    x:     Math.random(),
+    y:     Math.random(),
+    r:     Math.random() * 1.6 + 0.25,
+    alpha: Math.random() * 0.6 + 0.35,
+    speed: Math.random() * 0.6 + 0.2,
+    phase: Math.random() * Math.PI * 2,
+  }));
 
-  // Nebula glow
-  const nebColours = [0x1A0050, 0x003366, 0x001A40];
-  nebColours.forEach((col, i) => {
-    const light = new THREE.PointLight(col, 0.4, 60);
-    light.position.set((i - 1) * 30, (i % 2 === 0 ? 1 : -1) * 20, -40);
-    scene.add(light);
-  });
-}
-
-// ── Robot builder ────────────────────────────────────────────────────────────
-function addHit(group, mesh) {
-  mesh.userData.part = group.userData.part;
-  group.add(mesh);
-  hitMeshes.push(mesh);
-}
-
-function buildCosmo() {
-  const root = new THREE.Group();
-
-  // ── SHADOW DISC ──
-  const disc = new THREE.Mesh(
-    new THREE.CircleGeometry(1.0, 48),
-    new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.3 })
-  );
-  disc.rotation.x = -Math.PI / 2;
-  disc.position.y = -1.65;
-  root.add(disc);
-
-  // ── HEAD GROUP ──
-  const headG = new THREE.Group();
-  headG.position.y = 1.12;
-  root.add(headG);
-
-  // Head sphere — slightly wider and shallower for a friendly toy-robot look
-  const headMesh = new THREE.Mesh(new THREE.SphereGeometry(0.74, 48, 48), M.body.clone());
-  headMesh.scale.set(1.1, 1.0, 0.88);
-  headMesh.castShadow = true;
-  headG.add(headMesh);
-
-  // Yellow face panel — the signature feature from the reference
-  const panelMat = new THREE.MeshPhongMaterial({ color: 0xF5C030, shininess: 80, specular: new THREE.Color(0xFFEE88) });
-  const facePanel = new THREE.Mesh(new THREE.BoxGeometry(0.90, 0.78, 0.06), panelMat);
-  facePanel.position.set(0, 0.07, 0.67);
-  headG.add(facePanel);
-
-  // ── ANTENNA ──
-  const antG = new THREE.Group();
-  antG.position.set(0, 0.74, 0);
-  headG.add(antG);
-
-  const antStick = new THREE.Mesh(new THREE.CylinderGeometry(0.022, 0.04, 0.6, 16), M.gold.clone());
-  antStick.position.set(0, 0.3, 0);
-  antG.add(antStick);
-
-  const antBall = new THREE.Mesh(new THREE.SphereGeometry(0.11, 32, 32), M.glow.clone());
-  antBall.position.y = 0.65;
-  antBall.name = 'antBall';
-  antG.add(antBall);
-
-  const antRing = new THREE.Mesh(new THREE.TorusGeometry(0.11, 0.025, 8, 32), M.gold.clone());
-  antRing.position.set(0, 0.65, 0);
-  antG.add(antRing);
-
-  // ── EARS ──
-  const earsG = new THREE.Group();
-  earsG.name = 'ears'; earsG.userData.part = 'ears';
-  partGroups.ears = earsG;
-  headG.add(earsG);
-
-  [-1, 1].forEach(s => {
-    const pad = new THREE.Mesh(new THREE.CylinderGeometry(0.13, 0.11, 0.14, 32), M.gold.clone());
-    pad.rotation.z = Math.PI / 2;
-    pad.position.set(s * 0.87, 0, 0);
-    pad.castShadow = true;
-    pad.userData.part = 'ears';
-    earsG.add(pad); hitMeshes.push(pad);
-
-    // LED dot
-    const led = new THREE.Mesh(new THREE.SphereGeometry(0.045, 12, 12), M.glow.clone());
-    led.position.set(s * 0.96, 0, 0.03);
-    earsG.add(led);
-
-    // Invisible hit sphere (bigger target)
-    const h = new THREE.Mesh(new THREE.SphereGeometry(0.26, 8, 8), M.hit);
-    h.position.set(s * 0.82, 0, 0);
-    addHit(earsG, h);
-  });
-
-  // ── EYES ──
-  const eyesG = new THREE.Group();
-  eyesG.name = 'eyes'; eyesG.userData.part = 'eyes';
-  partGroups.eyes = eyesG;
-  headG.add(eyesG);
-
-  // Eyes — compact, on the yellow face panel, reference-style
-  [{ x: -0.20, name: 'leftIris' }, { x: 0.20, name: 'rightIris' }].forEach(({ x, name }) => {
-    const eyeG = new THREE.Group();
-    eyeG.position.set(x, 0.22, 0.74);
-
-    // Dark socket
-    const socket = new THREE.Mesh(new THREE.SphereGeometry(0.155, 24, 24), M.dark.clone());
-    socket.position.z = -0.04;
-    socket.userData.part = 'eyes';
-    eyeG.add(socket); hitMeshes.push(socket);
-
-    // White
-    const white = new THREE.Mesh(new THREE.SphereGeometry(0.145, 36, 36), M.eyeWhite.clone());
-    white.userData.part = 'eyes';
-    eyeG.add(white); hitMeshes.push(white);
-
-    // Iris group
-    const irisG = new THREE.Group();
-    irisG.name = name;
-    const iris = new THREE.Mesh(new THREE.SphereGeometry(0.092, 24, 24), M.eyeIris.clone());
-    iris.position.set(0, 0, 0.08);
-    irisG.add(iris);
-    const pupil = new THREE.Mesh(new THREE.SphereGeometry(0.058, 16, 16), M.eyePupil.clone());
-    pupil.position.set(0, 0, 0.13);
-    irisG.add(pupil);
-    const shine1 = new THREE.Mesh(new THREE.SphereGeometry(0.036, 8, 8), M.eyeWhite.clone());
-    shine1.position.set(0.038, 0.038, 0.155);
-    irisG.add(shine1);
-    const shine2 = new THREE.Mesh(new THREE.SphereGeometry(0.018, 6, 6), M.eyeWhite.clone());
-    shine2.position.set(-0.02, -0.025, 0.162);
-    irisG.add(shine2);
-    eyeG.add(irisG);
-    eyesG.add(eyeG);
-  });
-
-  // Hit strip across both eyes
-  const eyeHit = new THREE.Mesh(new THREE.BoxGeometry(0.72, 0.38, 0.22), M.hit);
-  eyeHit.position.set(0, 0.22, 0.68);
-  addHit(eyesG, eyeHit);
-
-  // ── NOSE ──
-  // Nose — small button, in front of face panel
-  const noseG = new THREE.Group();
-  noseG.name = 'nose'; noseG.userData.part = 'nose';
-  noseG.position.set(0, 0.05, 0.77);
-  partGroups.nose = noseG;
-  headG.add(noseG);
-
-  const noseMesh = new THREE.Mesh(new THREE.SphereGeometry(0.065, 24, 24), M.nose.clone());
-  noseMesh.userData.part = 'nose';
-  noseG.add(noseMesh); hitMeshes.push(noseMesh);
-  const noseShine = new THREE.Mesh(new THREE.SphereGeometry(0.022, 8, 8), M.eyeWhite.clone());
-  noseShine.position.set(0.025, 0.025, 0.048);
-  noseG.add(noseShine);
-  addHit(noseG, new THREE.Mesh(new THREE.SphereGeometry(0.16, 8, 8), M.hit));
-
-  // Cheek blushes — prominent pink flat circles on face panel
-  [-1, 1].forEach(s => {
-    const blush = new THREE.Mesh(
-      new THREE.CircleGeometry(0.115, 24),
-      new THREE.MeshBasicMaterial({ color: 0xFF9999, transparent: true, opacity: 0.78, side: THREE.DoubleSide })
-    );
-    blush.position.set(s * 0.30, 0.04, 0.71);
-    headG.add(blush);
-  });
-
-  // ── MOUTH — clean red torus arc smile ──
-  const mouthG = new THREE.Group();
-  mouthG.name = 'mouth'; mouthG.userData.part = 'mouth';
-  mouthG.position.set(0, -0.11, 0.72);
-  partGroups.mouth = mouthG;
-  headG.add(mouthG);
-
-  // TorusGeometry arc (half circle). rotation.z = PI flips it:
-  //   open side faces UP → U shape = genuine smile
-  const smileMat = new THREE.MeshPhongMaterial({ color: 0xCC2222, shininess: 90, specular: new THREE.Color(0xFF8888) });
-  const smileArc = new THREE.Mesh(new THREE.TorusGeometry(0.17, 0.026, 10, 32, Math.PI), smileMat);
-  smileArc.rotation.z = Math.PI;
-  smileArc.userData.part = 'mouth';
-  mouthG.add(smileArc); hitMeshes.push(smileArc);
-  addHit(mouthG, new THREE.Mesh(new THREE.BoxGeometry(0.52, 0.26, 0.16), M.hit));
-
-  // ── BODY ──
-  const bodyG = new THREE.Group();
-  bodyG.position.y = -0.15;
-  root.add(bodyG);
-
-  const torso = new THREE.Mesh(new THREE.BoxGeometry(1.28, 1.18, 0.92), M.body.clone());
-  torso.castShadow = true; torso.receiveShadow = true;
-  bodyG.add(torso);
-
-  // Chest panel lines
-  [0.24, -0.24].forEach(y => {
-    const line = new THREE.Mesh(new THREE.BoxGeometry(1.14, 0.038, 0.93), M.bodyDark.clone());
-    line.position.y = y;
-    bodyG.add(line);
-  });
-
-  // Shoulder caps (gold domes)
-  [-1, 1].forEach(s => {
-    const cap = new THREE.Mesh(
-      new THREE.SphereGeometry(0.19, 32, 32, 0, Math.PI*2, 0, Math.PI/2),
-      M.gold.clone()
-    );
-    cap.rotation.z = s > 0 ? Math.PI/2 : -Math.PI/2;
-    cap.position.set(s * 0.64, 0.52, 0);
-    bodyG.add(cap);
-  });
-
-  // Side ventilation ribs
-  [-1, 1].forEach(s => {
-    for (let i = 0; i < 3; i++) {
-      const rib = new THREE.Mesh(new THREE.BoxGeometry(0.025, 0.1, 0.22), M.darker.clone());
-      rib.position.set(s * 0.65, -0.08 + i * 0.13, 0.12);
-      bodyG.add(rib);
+  let t = 0;
+  function draw() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    t += 0.018;
+    for (const s of stars) {
+      const a = s.alpha * (0.55 + 0.45 * Math.sin(t * s.speed + s.phase));
+      ctx.beginPath();
+      ctx.arc(s.x * canvas.width, s.y * canvas.height, s.r, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(200,222,255,${a.toFixed(3)})`;
+      ctx.fill();
     }
-  });
-
-  // ── TUMMY SCREEN ──
-  const tummyG = new THREE.Group();
-  tummyG.name = 'tummy'; tummyG.userData.part = 'tummy';
-  tummyG.position.set(0, 0.04, 0.47);
-  partGroups.tummy = tummyG;
-  bodyG.add(tummyG);
-
-  const bezel = new THREE.Mesh(new THREE.BoxGeometry(0.76, 0.64, 0.06),
-    new THREE.MeshPhongMaterial({ color: 0x040A16, shininess: 120, specular: 0x2244AA }));
-  bezel.userData.part = 'tummy';
-  tummyG.add(bezel); hitMeshes.push(bezel);
-
-  const screenMesh = new THREE.Mesh(new THREE.BoxGeometry(0.65, 0.54, 0.022), M.screen.clone());
-  screenMesh.position.z = 0.04;
-  screenMesh.name = 'screenMesh';
-  screenMesh.userData.part = 'tummy';
-  tummyG.add(screenMesh); hitMeshes.push(screenMesh);
-
-  // Scan-line effect (horizontal strips)
-  for (let i = 0; i < 5; i++) {
-    const sl = new THREE.Mesh(
-      new THREE.BoxGeometry(0.62, 0.01, 0.005),
-      new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.25 })
-    );
-    sl.position.set(0, -0.24 + i * 0.12, 0.052);
-    tummyG.add(sl);
+    requestAnimationFrame(draw);
   }
+  draw();
+})();
 
-  const tummyHit = new THREE.Mesh(new THREE.BoxGeometry(1.0, 0.85, 0.4), M.hit);
-  tummyHit.position.set(0, 0, 0.15);
-  addHit(tummyG, tummyHit);
+// ── Web Audio ───────────────────────────────────────────────────────────────
+const AudioCtx = window.AudioContext || window.webkitAudioContext;
+let audioCtx = null;
 
-  // ── ARMS ──
-  [-1, 1].forEach(s => {
-    const arm = new THREE.Mesh(
-      new THREE.CapsuleGeometry(0.138, 0.56, 16, 32),
-      M.body.clone()
-    );
-    arm.rotation.z = Math.PI / 2;
-    arm.position.set(s * 0.93, -0.06, 0);
-    arm.castShadow = true;
-    bodyG.add(arm);
-
-    // Elbow ring
-    const ring = new THREE.Mesh(new THREE.TorusGeometry(0.142, 0.032, 10, 32), M.dark.clone());
-    ring.rotation.y = Math.PI / 2;
-    ring.position.set(s * 0.72, -0.06, 0);
-    bodyG.add(ring);
-  });
-
-  // ── HANDS ──
-  const handsG = new THREE.Group();
-  handsG.name = 'hands'; handsG.userData.part = 'hands';
-  partGroups.hands = handsG;
-  bodyG.add(handsG);
-
-  [-1, 1].forEach(s => {
-    const hand = new THREE.Mesh(new THREE.SphereGeometry(0.235, 48, 48), M.gold.clone());
-    hand.position.set(s * 1.25, -0.06, 0);
-    hand.castShadow = true;
-    hand.userData.part = 'hands';
-    handsG.add(hand); hitMeshes.push(hand);
-
-    // Knuckle rings
-    [0.08, -0.08].forEach(dy => {
-      const kr = new THREE.Mesh(new THREE.TorusGeometry(0.19, 0.026, 8, 24), M.dark.clone());
-      kr.rotation.z = Math.PI / 2;
-      kr.position.set(s * 1.25, -0.06 + dy, 0);
-      handsG.add(kr);
-    });
-
-    // Hand shine
-    const shine = new THREE.Mesh(new THREE.SphereGeometry(0.08, 8, 8),
-      new THREE.MeshPhongMaterial({ color: 0xFFFFFF, transparent: true, opacity: 0.3, shininess: 300 }));
-    shine.position.set(s * (1.25 - 0.11), 0.04, 0.16);
-    handsG.add(shine);
-
-    // Hit sphere
-    const handHit = new THREE.Mesh(new THREE.SphereGeometry(0.3, 8, 8), M.hit);
-    handHit.position.set(s * 1.25, -0.06, 0);
-    addHit(handsG, handHit);
-  });
-
-  // ── LEGS ──
-  const legMat = new THREE.MeshPhongMaterial({ color: 0x1A6FA0, shininess: 130, specular: 0x4488BB });
-  [-1, 1].forEach(s => {
-    const leg = new THREE.Mesh(new THREE.CapsuleGeometry(0.155, 0.52, 16, 32), legMat.clone());
-    leg.position.set(s * 0.3, -1.1, 0);
-    leg.castShadow = true;
-    bodyG.add(leg);
-
-    // Knee cap
-    const knee = new THREE.Mesh(new THREE.SphereGeometry(0.16, 24, 24), M.gold.clone());
-    knee.position.set(s * 0.3, -0.84, 0.05);
-    bodyG.add(knee);
-  });
-
-  // ── FEET ──
-  const feetG = new THREE.Group();
-  feetG.name = 'feet'; feetG.userData.part = 'feet';
-  partGroups.feet = feetG;
-  bodyG.add(feetG);
-
-  const footMat = new THREE.MeshPhongMaterial({ color: 0x1A252F, shininess: 90, specular: 0x334466 });
-  const toeMat  = new THREE.MeshPhongMaterial({ color: 0x253545, shininess: 80, specular: 0x448899 });
-  [-1, 1].forEach(s => {
-    const foot = new THREE.Mesh(new THREE.BoxGeometry(0.38, 0.17, 0.58), footMat.clone());
-    foot.position.set(s * 0.3, -1.46, 0.12);
-    foot.castShadow = true; foot.receiveShadow = true;
-    foot.userData.part = 'feet';
-    feetG.add(foot); hitMeshes.push(foot);
-
-    const toe = new THREE.Mesh(new THREE.BoxGeometry(0.32, 0.15, 0.2), toeMat.clone());
-    toe.position.set(s * 0.3, -1.46, 0.38);
-    feetG.add(toe);
-
-    // Gold sole stripe
-    const sole = new THREE.Mesh(new THREE.BoxGeometry(0.38, 0.035, 0.60), M.gold.clone());
-    sole.position.set(s * 0.3, -1.548, 0.12);
-    feetG.add(sole);
-
-    const footHit = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.28, 0.72), M.hit);
-    footHit.position.set(s * 0.3, -1.46, 0.12);
-    addHit(feetG, footHit);
-  });
-
-  return root;
+function getAudio() {
+  if (!audioCtx) audioCtx = new AudioCtx();
+  return audioCtx;
 }
 
-// ── Render loop ──────────────────────────────────────────────────────────────
-function renderLoop() {
-  requestAnimationFrame(renderLoop);
-  const dt = Math.min(clock.getDelta(), 0.05);
-  idleT += dt;
+function playTone(freq, dur, type = 'sine', vol = 0.18) {
+  try {
+    const ac  = getAudio();
+    const osc = ac.createOscillator();
+    const g   = ac.createGain();
+    osc.type      = type;
+    osc.frequency.setValueAtTime(freq, ac.currentTime);
+    g.gain.setValueAtTime(vol, ac.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001, ac.currentTime + dur);
+    osc.connect(g); g.connect(ac.destination);
+    osc.start(); osc.stop(ac.currentTime + dur);
+  } catch (_) {}
+}
 
-  // Camera smooth zoom
-  camZ += (camZTarget - camZ) * 0.06;
-  camera.position.z = camZ;
+function playTap()     { playTone(520, 0.12, 'sine', 0.15); }
+function playCorrect() {
+  [523, 659, 784].forEach((f, i) => setTimeout(() => playTone(f, 0.22, 'sine', 0.15), i * 80));
+}
+function playWrong()   { playTone(200, 0.3, 'sawtooth', 0.12); }
+function playCheer()   {
+  [523,587,659,698,784,880].forEach((f, i) => setTimeout(() => playTone(f, 0.28, 'sine', 0.14), i * 60));
+}
 
-  if (cosmoRoot) {
-    // Idle float
-    cosmoRoot.position.y = Math.sin(idleT * 0.85) * 0.09;
+// ── Web Speech ──────────────────────────────────────────────────────────────
+const syn = window.speechSynthesis;
+let voices = [];
 
-    // Splash: slow showcase rotation. Game: face front, track mouse slightly
-    if (currentScreen === 'splash') {
-      cosmoRoot.rotation.y += dt * 0.38;
-    } else {
-      const targetY = mouseNDC.x * 0.22;
-      const targetX = -mouseNDC.y * 0.08;
-      cosmoRoot.rotation.y += (targetY - cosmoRoot.rotation.y) * 0.06;
-      cosmoRoot.rotation.x += (targetX - cosmoRoot.rotation.x) * 0.06;
-    }
+function loadVoices() {
+  voices = syn.getVoices();
+}
+loadVoices();
+syn.onvoiceschanged = loadVoices;
 
-    // Antenna pulse
-    const ab = cosmoRoot.getObjectByName('antBall');
-    if (ab) {
-      ab.material.emissiveIntensity = 1.0 + Math.sin(idleT * 3.5) * 0.5;
-      ab.scale.setScalar(1 + Math.sin(idleT * 3.5) * 0.08);
-    }
-
-    // Screen shimmer
-    const sm = cosmoRoot.getObjectByName('screenMesh');
-    if (sm) sm.material.emissiveIntensity = 0.85 + Math.sin(idleT * 2.2) * 0.2;
-
-    // Eye tracking
-    updateEyeTracking();
-
-    // Eye blink
-    blinkCountdown -= dt;
-    if (blinkCountdown <= 0) { doBlink(); blinkCountdown = 3.5 + Math.random() * 3; }
+function pickVoice() {
+  // Prefer a child/female UK or AU voice; fall back gracefully
+  const pref = [
+    v => /en[-_](GB|AU)/i.test(v.lang) && /female|girl|child|junior|fiona|kate|serena|veena|moira/i.test(v.name),
+    v => /en[-_](GB|AU)/i.test(v.lang),
+    v => /en[-_](US|CA)/i.test(v.lang) && /female|girl|junior/i.test(v.name),
+    v => /en/i.test(v.lang),
+    () => true,
+  ];
+  for (const fn of pref) {
+    const v = voices.find(fn);
+    if (v) return v;
   }
+  return null;
+}
 
-  // Run animation queue
-  for (let i = anims.length - 1; i >= 0; i--) {
-    if (!anims[i](dt)) anims.splice(i, 1);
-  }
+function speak(text, onEnd) {
+  if (!text) { if (onEnd) onEnd(); return; }
+  syn.cancel();
+  const u    = new SpeechSynthesisUtterance(text);
+  u.pitch    = 1.65;
+  u.rate     = 0.92;
+  u.volume   = 1;
+  const v    = pickVoice();
+  if (v) u.voice = v;
+  u.onend = u.onerror = () => { speaking = false; if (onEnd) onEnd(); };
+  speaking = true;
+  syn.speak(u);
+}
 
-  // Update 3D burst particles
-  for (let i = burstParticles.length - 1; i >= 0; i--) {
-    const p = burstParticles[i];
-    p.life -= dt * 1.4;
-    p.mesh.position.addScaledVector(p.vel, dt);
-    p.vel.y -= dt * 2.5; // gravity
-    p.mesh.scale.setScalar(Math.max(0, p.life));
-    p.mesh.material.opacity = Math.max(0, p.life * 1.2);
-    if (p.life <= 0) { scene.remove(p.mesh); burstParticles.splice(i, 1); }
-  }
-
-  renderer.render(scene, camera);
+// ── Screens ─────────────────────────────────────────────────────────────────
+function showScreen(id) {
+  currentScreen = id;
+  document.querySelectorAll('.ui-layer').forEach(el => {
+    el.classList.add('hidden');
+    el.classList.remove('active');
+  });
+  const el = document.getElementById(id);
+  if (el) { el.classList.remove('hidden'); el.classList.add('active'); }
 }
 
 // ── Eye tracking ─────────────────────────────────────────────────────────────
-function updateEyeTracking() {
-  ['leftIris', 'rightIris'].forEach(name => {
-    const iris = cosmoRoot.getObjectByName(name);
-    if (!iris) return;
-    const tx = THREE.MathUtils.clamp(mouseNDC.x * 0.045, -0.045, 0.045);
-    const ty = THREE.MathUtils.clamp(mouseNDC.y * 0.03,  -0.03,  0.03);
-    iris.position.x += (tx - iris.position.x) * 0.12;
-    iris.position.y += (ty - iris.position.y) * 0.12;
-  });
-}
+const leftIrisG  = document.getElementById('left-iris-g');
+const rightIrisG = document.getElementById('right-iris-g');
 
-// ── Eye blink ────────────────────────────────────────────────────────────────
-function doBlink() {
-  ['leftIris', 'rightIris'].forEach(name => {
-    const iris = cosmoRoot.getObjectByName(name);
-    if (!iris) return;
-    // Also find the white (parent)
-    const eyeGroup = iris.parent;
-    if (!eyeGroup) return;
-    eyeGroup.children.forEach(c => {
-      if (c === iris) return;
-      const origY = c.scale.y;
-      anims.push(makeScaleYAnim(c, 1, 0.04, 0.08, () =>
-        anims.push(makeScaleYAnim(c, 0.04, 1, 0.1, null))
-      ));
-    });
-  });
-}
+// Eye centres in SVG viewBox units
+const LEFT_EYE  = { x: 166, y: 170 };
+const RIGHT_EYE = { x: 254, y: 170 };
 
-function makeScaleYAnim(obj, from, to, dur, onDone) {
-  let t = 0;
-  obj.scale.y = from;
-  return (dt) => {
-    t += dt / dur;
-    obj.scale.y = THREE.MathUtils.lerp(from, to, Math.min(t, 1));
-    if (t >= 1) { if (onDone) onDone(); return false; }
-    return true;
+function svgCoords(clientX, clientY) {
+  const rect = cosmoSvg.getBoundingClientRect();
+  return {
+    x: (clientX - rect.left) / rect.width  * VBW,
+    y: (clientY - rect.top)  / rect.height * VBH,
   };
 }
 
-// ── 3D burst particles ────────────────────────────────────────────────────────
-function burst3D(worldPos) {
-  const geo = new THREE.SphereGeometry(0.07, 6, 6);
-  for (let i = 0; i < 18; i++) {
-    const mat = new THREE.MeshBasicMaterial({
-      color: BURST_COLS[i % BURST_COLS.length],
-      transparent: true
-    });
-    const mesh = new THREE.Mesh(geo, mat);
-    mesh.position.copy(worldPos);
-    scene.add(mesh);
-    const vel = new THREE.Vector3(
-      (Math.random() - 0.5) * 4,
-      Math.random() * 3.5 + 1,
-      (Math.random() - 0.5) * 3
-    );
-    burstParticles.push({ mesh, vel, life: 1 });
+function updateEyes(clientX, clientY) {
+  const { x, y } = svgCoords(clientX, clientY);
+  for (const [el, cx, cy] of [[leftIrisG, LEFT_EYE.x, LEFT_EYE.y], [rightIrisG, RIGHT_EYE.x, RIGHT_EYE.y]]) {
+    const dx   = x - cx, dy = y - cy;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    const max  = 8;
+    const s    = dist > 0 ? Math.min(max, dist) / dist : 0;
+    el.setAttribute('transform', `translate(${(dx * s).toFixed(2)},${(dy * s).toFixed(2)})`);
   }
 }
 
-// ── Part pop animation (scale bounce) ────────────────────────────────────────
-function popGroup(group) {
-  if (!group) return;
+window.addEventListener('mousemove', e => updateEyes(e.clientX, e.clientY));
+window.addEventListener('touchmove', e => {
+  if (e.touches[0]) updateEyes(e.touches[0].clientX, e.touches[0].clientY);
+}, { passive: true });
+
+// ── Blinking ─────────────────────────────────────────────────────────────────
+const leftLid  = document.getElementById('left-lid');
+const rightLid = document.getElementById('right-lid');
+
+function doBlink() {
   let t = 0;
-  anims.push((dt) => {
-    t += dt * 5;
-    const s = 1 + Math.sin(Math.min(t, Math.PI)) * 0.35;
-    group.scale.setScalar(s);
-    if (t >= Math.PI) { group.scale.setScalar(1); return false; }
-    return true;
-  });
+  const step = () => {
+    t += 0.1;
+    const ry = Math.sin(Math.min(t, Math.PI)) * 32;
+    leftLid.setAttribute('ry',  ry.toFixed(1));
+    rightLid.setAttribute('ry', ry.toFixed(1));
+    if (t < Math.PI) requestAnimationFrame(step);
+    else { leftLid.setAttribute('ry', '0'); rightLid.setAttribute('ry', '0'); }
+  };
+  requestAnimationFrame(step);
 }
 
-// ── Highlight flash ───────────────────────────────────────────────────────────
-function flashGroup(group) {
-  if (!group) return;
-  const origMats = [];
-  const flash = new THREE.MeshPhongMaterial({ color: 0xFFFFFF, shininess: 100, transparent: true, opacity: 0.6 });
-  group.traverse(obj => {
-    if (obj.isMesh && obj.material !== M.hit) {
-      origMats.push({ obj, mat: obj.material });
-      obj.material = flash;
-    }
-  });
-  setTimeout(() => origMats.forEach(({ obj, mat }) => { obj.material = mat; }), 180);
+function schedBlink() {
+  const delay = 2800 + Math.random() * 3800;
+  blinkTimer = setTimeout(() => { doBlink(); schedBlink(); }, delay);
+}
+schedBlink();
+
+// ── Tummy dot pulse ──────────────────────────────────────────────────────────
+(function pulseTummy() {
+  const dot = document.getElementById('tummy-dot');
+  if (!dot) return;
+  let t = 0;
+  function step() {
+    t += 0.04;
+    const r = 7 + Math.sin(t) * 3;
+    dot.setAttribute('r', r.toFixed(1));
+    requestAnimationFrame(step);
+  }
+  step();
+})();
+
+// ── Hit detection ────────────────────────────────────────────────────────────
+function dist2(x1, y1, x2, y2) { return (x1 - x2) ** 2 + (y1 - y2) ** 2; }
+
+function getPartAt(x, y) {
+  // Priority: small targets first
+  if (dist2(x, y, 210, 216) < 30 * 30) return 'nose';
+  if (dist2(x, y, 166, 170) < 42 * 42) return 'eyes';
+  if (dist2(x, y, 254, 170) < 42 * 42) return 'eyes';
+  if (x > 158 && x < 262 && y > 244 && y < 304) return 'mouth';
+  // Ears: outside the face panel (x < 112 or x > 310)
+  if (x < 114 && y > 152 && y < 238) return 'ears';
+  if (x > 306 && y > 152 && y < 238) return 'ears';
+  // Hands
+  if (dist2(x, y, 34, 337) < 52 * 52) return 'hands';
+  if (dist2(x, y, 386, 337) < 52 * 52) return 'hands';
+  // Tummy
+  if (x > 126 && x < 294 && y > 336 && y < 492) return 'tummy';
+  // Feet
+  if (x > 115 && x < 305 && y > 568 && y < 632) return 'feet';
+  return null;
 }
 
-// ── Raycasting ───────────────────────────────────────────────────────────────
-const raycaster = new THREE.Raycaster();
-const _mouse2   = new THREE.Vector2();
+// SVG group IDs for flash animation
+const PART_GROUP = {
+  ears:  'part-ears',
+  eyes:  'part-eyes',
+  nose:  'part-nose',
+  mouth: 'part-mouth',
+  tummy: 'part-tummy',
+  hands: 'part-hands',
+  feet:  'part-feet',
+};
 
-function getHitPart(clientX, clientY) {
-  const W = renderer.domElement.clientWidth;
-  const H = renderer.domElement.clientHeight;
-  _mouse2.x = (clientX / W) * 2 - 1;
-  _mouse2.y = -(clientY / H) * 2 + 1;
-  raycaster.setFromCamera(_mouse2, camera);
-  const hits = raycaster.intersectObjects(hitMeshes, false);
-  if (!hits.length) return null;
-  return { part: hits[0].object.userData.part, point: hits[0].point };
+function flashPart(partId) {
+  const el = document.getElementById(PART_GROUP[partId]);
+  if (!el) return;
+  el.style.filter = 'brightness(2.8) saturate(0.2)';
+  setTimeout(() => { el.style.filter = ''; }, 200);
 }
 
-function onCanvasClick(e) {
-  if (currentScreen !== 'game') return;
-  const hit = getHitPart(e.clientX, e.clientY);
-  if (hit) onPartTapped(hit.part, partGroups[hit.part], hit.point);
+function bounceCosmo() {
+  cosmoSvg.style.transition = 'transform 0.08s ease-out';
+  cosmoSvg.style.transform  = 'translateY(-8px) scale(1.04)';
+  setTimeout(() => {
+    cosmoSvg.style.transition = 'transform 0.4s cubic-bezier(0.34,1.56,0.64,1)';
+    cosmoSvg.style.transform  = '';
+    setTimeout(() => { cosmoSvg.style.transition = ''; }, 420);
+  }, 90);
 }
 
-function onCanvasTouchStart(e) {
-  if (currentScreen !== 'game') return;
-  e.preventDefault();
-  const t = e.touches[0];
-  const hit = getHitPart(t.clientX, t.clientY);
-  if (hit) onPartTapped(hit.part, partGroups[hit.part], hit.point);
+// ── Label bubble ─────────────────────────────────────────────────────────────
+function showBubble(text) {
+  bubbleText.textContent = text;
+  labelBubble.classList.remove('hidden', 'pop');
+  void labelBubble.offsetWidth;  // reflow to restart animation
+  labelBubble.classList.add('pop');
 }
 
-function onMouseMove(e) {
-  mouseNDC.x = (e.clientX / window.innerWidth) * 2 - 1;
-  mouseNDC.y = -(e.clientY / window.innerHeight) * 2 + 1;
+function hideBubble() {
+  labelBubble.classList.add('hidden');
 }
 
-function onTouchMoveForEyes(e) {
-  mouseNDC.x = (e.touches[0].clientX / window.innerWidth) * 2 - 1;
-  mouseNDC.y = -(e.touches[0].clientY / window.innerHeight) * 2 + 1;
+// ── Confetti ─────────────────────────────────────────────────────────────────
+const CONFETTI_COLOURS = ['#FF6B6B','#FFC300','#39D353','#00B4D8','#FF9EBC','#FF7F50','#8A2BE2'];
+
+function spawnConfetti(n = 70) {
+  htmlFx.innerHTML = '';
+  for (let i = 0; i < n; i++) {
+    const el = document.createElement('div');
+    el.className = 'confetti';
+    el.style.cssText = [
+      `left:${5 + Math.random() * 90}%`,
+      `width:${8 + Math.random() * 10}px`,
+      `height:${8 + Math.random() * 10}px`,
+      `background:${CONFETTI_COLOURS[Math.floor(Math.random() * CONFETTI_COLOURS.length)]}`,
+      `animation-duration:${2.2 + Math.random() * 1.4}s`,
+      `animation-delay:${Math.random() * 0.6}s`,
+      `border-radius:${Math.random() > 0.5 ? '50%' : '2px'}`,
+    ].join(';');
+    htmlFx.appendChild(el);
+  }
+  setTimeout(() => { htmlFx.innerHTML = ''; }, 4000);
 }
 
-// ── Part interaction ─────────────────────────────────────────────────────────
-function onPartTapped(partId, group, point) {
+// ── Part tap handler ─────────────────────────────────────────────────────────
+function onPartTapped(partId) {
+  const part = PARTS.find(p => p.id === partId);
+  if (!part) return;
+
+  playTap();
+  flashPart(partId);
+  bounceCosmo();
+
   if (mode === 'explore') {
-    if (busy) return;
-    const part = PARTS.find(p => p.id === partId);
-    if (!part) return;
-    busy = true;
-    sfx.touch();
     showBubble(part.label);
-    flashGroup(group);
-    popGroup(group);
-    burst3D(point || new THREE.Vector3());
-    speak(part.explore).then(() => { busy = false; });
-
-  } else if (mode === 'quiz') {
-    if (!currentPart || busy) return;
-    if (partId === currentPart.id) {
-      busy = true;
-      sfx.success();
-      showBubble('🎉 ' + currentPart.label + '!');
-      flashGroup(group);
-      popGroup(group);
-      burst3D(point || new THREE.Vector3());
-      quizScore++;
-      updateStars();
-      speak("Well done! That's right!").then(() => { busy = false; setTimeout(nextQuestion, 300); });
+    speak(part.explore);
+  } else {
+    // Quiz mode
+    const target = quizParts[quizIdx];
+    if (partId === target.id) {
+      playCorrect();
+      score++;
+      starsEl.textContent = '⭐'.repeat(score);
+      speak(`Well done! That's right!`, () => {
+        quizIdx++;
+        if (quizIdx >= quizParts.length) {
+          endQuiz();
+        } else {
+          nextQuestion();
+        }
+      });
     } else {
-      sfx.wrong();
-      // Shake wrong group
-      if (partGroups[partId]) {
-        const g = partGroups[partId];
-        let t = 0;
-        anims.push((dt) => {
-          t += dt * 14;
-          g.position.x = Math.sin(t) * 0.06 * Math.exp(-t * 0.3);
-          if (t > 4) { g.position.x = 0; return false; }
-          return true;
-        });
-      }
+      playWrong();
       speak('Oops! Try again!');
     }
   }
 }
 
-// ── Quiz ─────────────────────────────────────────────────────────────────────
-function updateStars() {
-  document.getElementById('stars').textContent = '⭐'.repeat(quizScore);
+// ── SVG tap event ────────────────────────────────────────────────────────────
+cosmoSvg.addEventListener('click', e => {
+  if (currentScreen !== 'game') return;
+  const touch = e.touches ? e.touches[0] : e;
+  const { x, y } = svgCoords(touch.clientX || e.clientX, touch.clientY || e.clientY);
+  const partId = getPartAt(x, y);
+  if (partId) onPartTapped(partId);
+});
+
+cosmoSvg.addEventListener('touchstart', e => {
+  if (currentScreen !== 'game') return;
+  e.preventDefault();
+  const t = e.touches[0];
+  const { x, y } = svgCoords(t.clientX, t.clientY);
+  const partId = getPartAt(x, y);
+  if (partId) onPartTapped(partId);
+}, { passive: false });
+
+// ── Explore mode ──────────────────────────────────────────────────────────────
+function startExplore() {
+  mode = 'explore';
+  showScreen('game');
+  modeBadge.textContent = '🔍 Explore';
+  quizPanel.classList.add('hidden');
+  scoreArea.classList.add('hidden');
+  hideBubble();
+  speak('Tap any part of my body to find out what it is called!');
 }
 
-function nextQuestion() {
-  if (quizQueue.length === 0) { endQuiz(); return; }
-  currentPart = quizQueue.shift();
-  document.getElementById('quiz-q').textContent = currentPart.quiz;
-  speak(currentPart.quiz);
-}
-
-async function endQuiz() {
-  currentPart = null;
-  sfx.cheer();
-  showBubble('🎉 Amazing! All done!');
-  htmlConfetti();
-  await speak(`Amazing! You found all ${PARTS.length} of my body parts! You are incredible!`);
-  stopQuiz();
-}
-
+// ── Quiz mode ─────────────────────────────────────────────────────────────────
 function startQuiz() {
-  quizQueue = [...PARTS].sort(() => Math.random() - 0.5);
-  quizScore = 0; currentPart = null; busy = false;
-  mode = 'quiz';
-  document.getElementById('mode-badge').textContent = '⭐ Quiz Time!';
-  document.getElementById('quiz-panel').classList.remove('hidden');
-  document.getElementById('score-area').classList.remove('hidden');
-  updateStars();
+  mode  = 'quiz';
+  score = 0;
+  quizParts = [...PARTS].sort(() => Math.random() - 0.5);
+  quizIdx   = 0;
+  starsEl.textContent = '';
+  showScreen('game');
+  modeBadge.textContent = '⭐ Quiz!';
+  scoreArea.classList.remove('hidden');
+  hideBubble();
   nextQuestion();
 }
 
-function stopQuiz() {
-  mode = 'explore';
-  currentPart = null;
-  document.getElementById('mode-badge').textContent = '🔍 Explore';
-  document.getElementById('quiz-panel').classList.add('hidden');
-  document.getElementById('score-area').classList.add('hidden');
+function nextQuestion() {
+  const target = quizParts[quizIdx];
+  quizQ.textContent = target.quiz;
+  quizPanel.classList.remove('hidden');
+  speak(target.quiz);
 }
 
-// ── HTML confetti ─────────────────────────────────────────────────────────────
-function htmlConfetti() {
-  const fx = document.getElementById('html-fx');
-  for (let i = 0; i < 50; i++) {
-    setTimeout(() => {
-      const el = document.createElement('div');
-      el.className = 'confetti';
-      const w = 8 + Math.random() * 10;
-      el.style.cssText = `
-        left:${Math.random()*100}vw;
-        background:${CONFETTI_CSS[Math.floor(Math.random()*CONFETTI_CSS.length)]};
-        width:${w}px; height:${w}px;
-        border-radius:${Math.random()>0.4?'50%':'3px'};
-        animation-duration:${1.3+Math.random()*1.4}s;
-        animation-delay:${Math.random()*0.6}s;
-      `;
-      fx.appendChild(el);
-      setTimeout(() => el.remove(), 3500);
-    }, i * 38);
-  }
-}
-
-// ── Label bubble ─────────────────────────────────────────────────────────────
-let bubbleTimer;
-function showBubble(text) {
-  clearTimeout(bubbleTimer);
-  const b = document.getElementById('label-bubble');
-  document.getElementById('bubble-text').textContent = text;
-  b.classList.remove('hidden', 'pop');
-  void b.offsetWidth;
-  b.classList.add('pop');
-  bubbleTimer = setTimeout(() => b.classList.add('hidden'), 3400);
-}
-
-// ── Web Speech ────────────────────────────────────────────────────────────────
-const syn = window.speechSynthesis;
-let voices = [];
-syn.onvoiceschanged = () => { voices = syn.getVoices(); };
-setTimeout(() => { voices = syn.getVoices(); }, 300);
-
-function speak(text) {
-  return new Promise(resolve => {
-    syn.cancel();
-    const u = new SpeechSynthesisUtterance(text);
-    u.rate = 0.92; u.pitch = 1.7; u.volume = 1;
-    const v = voices.find(v => v.lang.startsWith('en') && /google uk english female|samantha|hazel|karen|moira|tessa/i.test(v.name))
-           || voices.find(v => v.lang.startsWith('en-GB') || v.lang.startsWith('en-AU'))
-           || voices.find(v => v.lang.startsWith('en') && v.name.toLowerCase().includes('female'))
-           || voices.find(v => v.lang.startsWith('en'))
-           || voices[0];
-    if (v) u.voice = v;
-    u.onstart  = () => { isSpeaking = true; };
-    u.onend    = () => { isSpeaking = false; resolve(); };
-    u.onerror  = () => { isSpeaking = false; resolve(); };
-    setTimeout(() => { isSpeaking = false; resolve(); }, 10000);
-    syn.speak(u);
-  });
-}
-
-// ── Web Audio ─────────────────────────────────────────────────────────────────
-let audioCtx;
-function ac() {
-  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-  return audioCtx;
-}
-
-function tone(freq, dur, type = 'sine', vol = 0.2, delay = 0) {
-  try {
-    const ctx = ac(), t = ctx.currentTime + delay;
-    const osc  = ctx.createOscillator();
-    const gain = ctx.createGain();
-    // Add a tiny reverb via delay node for warmth
-    const dly  = ctx.createDelay(0.3);
-    const dGain = ctx.createGain();
-    dly.delayTime.value = 0.12;
-    dGain.gain.value = 0.18;
-    osc.connect(gain); gain.connect(ctx.destination);
-    gain.connect(dly); dly.connect(dGain); dGain.connect(ctx.destination);
-    osc.type = type;
-    osc.frequency.setValueAtTime(freq, t);
-    gain.gain.setValueAtTime(0, t);
-    gain.gain.linearRampToValueAtTime(vol, t + 0.02);
-    gain.gain.exponentialRampToValueAtTime(0.001, t + dur);
-    osc.start(t); osc.stop(t + dur + 0.02);
-  } catch (_) {}
-}
-
-const sfx = {
-  touch()   { tone(523, 0.2); tone(659, 0.15, 'sine', 0.12, 0.08); },
-  success() {
-    [[523,0],[659,0.1],[784,0.2],[1047,0.3]].forEach(([f,d]) => tone(f, 0.22, 'sine', 0.18, d));
-    tone(1319, 0.35, 'sine', 0.14, 0.42);
-  },
-  wrong()   { tone(330, 0.14, 'square', 0.12); tone(275, 0.24, 'square', 0.1, 0.16); },
-  cheer()   {
-    [[523,0],[587,0.08],[659,0.16],[784,0.24],[880,0.32],[988,0.4],[1047,0.48],[1319,0.58]]
-      .forEach(([f,d]) => tone(f, 0.25, 'sine', 0.16, d));
-  },
-};
-
-// ── Screen management ─────────────────────────────────────────────────────────
-function showScreen(id) {
-  currentScreen = id;
-  document.querySelectorAll('.overlay').forEach(o => {
-    o.classList.remove('active');
-    o.classList.add('hidden');
-  });
-  const el = document.getElementById(id);
-  if (el) { el.classList.remove('hidden'); el.classList.add('active'); }
-
-  if (id === 'game') {
-    // Portrait phones need camera further back so feet are visible
-    const aspect = window.innerWidth / window.innerHeight;
-    camZTarget = aspect < 0.65 ? 7.2 : 6.0;
-    document.getElementById('label-bubble').classList.add('hidden');
-  } else {
-    camZTarget = 8.5;
-  }
-}
-
-// ── Resize ────────────────────────────────────────────────────────────────────
-function onResize() {
-  const W = window.innerWidth, H = window.innerHeight;
-  camera.aspect = W / H;
-  camera.updateProjectionMatrix();
-  renderer.setSize(W, H);
-}
-
-// ── Boot ──────────────────────────────────────────────────────────────────────
-document.addEventListener('DOMContentLoaded', () => {
-  initThree();
-
-  document.getElementById('btn-explore').addEventListener('click', () => {
-    mode = 'explore';
-    document.getElementById('mode-badge').textContent = '🔍 Explore';
-    showScreen('game');
-    setTimeout(() => speak('Tap any part of my body to find out what it is called!'), 400);
-  });
-
-  document.getElementById('btn-quiz').addEventListener('click', () => {
-    showScreen('game');
-    setTimeout(startQuiz, 500);
-  });
-
-  document.getElementById('btn-quit').addEventListener('click', () => {
-    syn.cancel(); isSpeaking = false;
-    stopQuiz(); busy = false;
+function endQuiz() {
+  quizPanel.classList.add('hidden');
+  playCheer();
+  spawnConfetti(80);
+  const msg = `Amazing! You found all ${PARTS.length} of my body parts! You are incredible!`;
+  speak(msg);
+  showBubble('🎉');
+  setTimeout(() => {
+    hideBubble();
     showScreen('splash');
-    setTimeout(initSplash, 500);
-  });
+    splashBtns.classList.remove('hidden');
+  }, 5500);
+}
 
-  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
-
-  initSplash();
+// ── Quit ──────────────────────────────────────────────────────────────────────
+document.getElementById('btn-quit').addEventListener('click', () => {
+  syn.cancel();
+  hideBubble();
+  showScreen('splash');
+  splashBtns.classList.remove('hidden');
 });
 
+// ── Button wiring ─────────────────────────────────────────────────────────────
+document.getElementById('btn-explore').addEventListener('click', startExplore);
+document.getElementById('btn-quiz').addEventListener('click', startQuiz);
+
+// ── Splash intro ──────────────────────────────────────────────────────────────
 async function initSplash() {
-  const btns = document.getElementById('splash-btns');
-  btns.classList.add('hidden');
-  // Wait up to 1.5 s for the browser to finish loading voices
+  splashBtns.classList.add('hidden');
+  showScreen('splash');
+
+  // Wait for voices to load (async on many browsers)
   if (!voices.length) {
-    voices = syn.getVoices();
-    if (!voices.length) {
-      await new Promise(resolve => {
-        syn.onvoiceschanged = () => { voices = syn.getVoices(); resolve(); };
-        setTimeout(resolve, 1500);
-      });
-      voices = syn.getVoices();
-    }
+    await new Promise(resolve => {
+      syn.onvoiceschanged = () => { loadVoices(); resolve(); };
+      setTimeout(resolve, 1600);
+    });
+    loadVoices();
   }
-  await speak('Hello there! I am Cosmo, your friendly robot! I would love to be your friend. Tap different parts of my body to learn all about body parts!');
-  btns.classList.remove('hidden');
+
+  speak(
+    'Hello there! I am Cosmo, your friendly robot! I would love to be your friend. Tap different parts of my body to learn all about body parts!',
+    () => { splashBtns.classList.remove('hidden'); }
+  );
 }
+
+initSplash();

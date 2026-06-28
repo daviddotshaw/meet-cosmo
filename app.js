@@ -7,25 +7,25 @@
 // ── Body parts ──────────────────────────────────────────────────────────────
 const PARTS = [
   { id:'ears',  label:'Ears',
-    explore:'These are my ears! I can hear everything you say! Can you wiggle your ears? I cannot wiggle mine! My ears just go boing boing!',
+    explore:'These are my ears! I can hear everything you say! Can you wiggle your ears? I cannot wiggle mine at all — robots are rubbish at that!',
     quiz:'Can you find my ears?' },
   { id:'eyes',  label:'Eyes',
-    explore:'These are my eyes! Blink! Blink! Blink! I can see your lovely face! How many eyes do you have? I have two, just like you!',
+    explore:'These are my eyes! I can see your lovely face right now! How many eyes do you have? I have two, just like you!',
     quiz:'Can you find my eyes?' },
   { id:'nose',  label:'Nose',
-    explore:'Beep boop! This is my nose! Yours can sniff things, but mine just goes beep boop! Try it! Beep boop!',
+    explore:'This is my nose! Your nose can smell wonderful things like cookies and flowers. What is your favourite smell?',
     quiz:'Can you tap my nose?' },
   { id:'mouth', label:'Mouth',
-    explore:'This is my mouth! La la la la la! I love to talk and sing! Can you say hello to me? Go on, say hello!',
+    explore:'This is my mouth! I use it to talk and sing and smile at you! Can you give me your biggest smile right now?',
     quiz:'Can you find my mouth?' },
   { id:'tummy', label:'Tummy',
-    explore:'This is my tummy! I keep all my robot biscuits in here! Nom nom nom! Do you like biscuits too?',
+    explore:'This is my tummy! My glowing power core lives right in here. Do you get hungry in your tummy when you need lunch?',
     quiz:'Can you find my tummy?' },
   { id:'hands', label:'Hands',
-    explore:'These are my hands! I love to wave hello to all my friends! Can you wave back at me? Hello! Hello! Hello!',
+    explore:'These are my hands! I love to wave hello to all my friends. Can you wave your hands back at me right now?',
     quiz:'Can you find my hands?' },
   { id:'feet',  label:'Feet',
-    explore:'These are my feet! I do the robot dance with these! Do do do do do! Can you do the robot dance too? Stomp stomp stomp!',
+    explore:'These are my feet! I love to stomp and dance around the room. Can you stomp your feet on the floor too?',
     quiz:'Can you find my feet?' },
 ];
 
@@ -174,16 +174,14 @@ function makeCircleTexture(size = 64) {
 }
 
 function buildStarField() {
-  const starTex = makeCircleTexture(64);
-
-  // Main field — small, soft stars
-  const n = 3000;
+  // Small stars — plain points, too tiny to see the shape
+  const n = 2500;
   const pos = new Float32Array(n * 3);
   const col = new Float32Array(n * 3);
   for (let i = 0; i < n; i++) {
     const theta = Math.random() * Math.PI * 2;
     const phi   = Math.acos(Math.random() * 2 - 1);
-    const r     = 50 + Math.random() * 80;
+    const r     = 55 + Math.random() * 75;
     pos[i*3]   = r * Math.sin(phi) * Math.cos(theta);
     pos[i*3+1] = r * Math.sin(phi) * Math.sin(theta);
     pos[i*3+2] = r * Math.cos(phi);
@@ -194,20 +192,21 @@ function buildStarField() {
   geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
   geo.setAttribute('color',    new THREE.BufferAttribute(col, 3));
   scene.add(new THREE.Points(geo,
-    new THREE.PointsMaterial({ size: 0.28, vertexColors: true, sizeAttenuation: true,
-      map: starTex, transparent: true, alphaTest: 0.01, depthWrite: false })));
+    new THREE.PointsMaterial({ size: 0.22, vertexColors: true, sizeAttenuation: true })));
 
-  // Large bright stars — circular sprites so they don't look like squares
-  const bn = 55, bp = new Float32Array(bn * 3);
-  for (let i = 0; i < bn; i++) {
-    bp[i*3] = (Math.random()-0.5)*90; bp[i*3+1] = (Math.random()-0.5)*90; bp[i*3+2] = (Math.random()-0.5)*60-15;
+  // Large bright stars — use THREE.Sprite so they're always circular
+  const starTex = makeCircleTexture(32);
+  const spriteMat = new THREE.SpriteMaterial({ map: starTex, color: 0xFFFFFF });
+  for (let i = 0; i < 40; i++) {
+    const sp = new THREE.Sprite(spriteMat);
+    sp.position.set(
+      (Math.random() - 0.5) * 90,
+      (Math.random() - 0.5) * 90,
+      (Math.random() - 0.5) * 50 - 20
+    );
+    sp.scale.setScalar(0.9 + Math.random() * 0.8);
+    scene.add(sp);
   }
-  const bgeo = new THREE.BufferGeometry();
-  bgeo.setAttribute('position', new THREE.BufferAttribute(bp, 3));
-  scene.add(new THREE.Points(bgeo, new THREE.PointsMaterial({
-    size: 0.7, color: 0xFFFFFF, map: starTex,
-    transparent: true, alphaTest: 0.01, depthWrite: false
-  })));
 
   // Nebula glow
   const nebColours = [0x1A0050, 0x003366, 0x001A40];
@@ -242,28 +241,17 @@ function buildCosmo() {
   headG.position.y = 1.12;
   root.add(headG);
 
-  // Head sphere
-  const headMesh = new THREE.Mesh(new THREE.SphereGeometry(0.74, 64, 64), M.body.clone());
+  // Head sphere — slightly wider and shallower for a friendly toy-robot look
+  const headMesh = new THREE.Mesh(new THREE.SphereGeometry(0.74, 48, 48), M.body.clone());
+  headMesh.scale.set(1.1, 1.0, 0.88);
   headMesh.castShadow = true;
   headG.add(headMesh);
 
-  // Head highlight (translucent upper dome)
-  headG.add(new THREE.Mesh(
-    new THREE.SphereGeometry(0.73, 32, 32, 0, Math.PI*2, 0, 0.75),
-    new THREE.MeshPhongMaterial({ color: 0xAADDFF, shininess: 60, transparent: true, opacity: 0.18 })
-  ));
-
-  // Equatorial seam ring
-  const seamRing = new THREE.Mesh(new THREE.TorusGeometry(0.74, 0.03, 16, 80), M.dark.clone());
-  seamRing.rotation.x = Math.PI / 2;
-  headG.add(seamRing);
-
-  // Face plate (subtle lighter panel)
-  const facePlate = new THREE.Mesh(
-    new THREE.SphereGeometry(0.71, 32, 32, -0.8, 1.6, 0.5, 1.8),
-    new THREE.MeshPhongMaterial({ color: 0x7EC8E3, shininess: 60, transparent: true, opacity: 0.22 })
-  );
-  headG.add(facePlate);
+  // Yellow face panel — the signature feature from the reference
+  const panelMat = new THREE.MeshPhongMaterial({ color: 0xF5C030, shininess: 80, specular: new THREE.Color(0xFFEE88) });
+  const facePanel = new THREE.Mesh(new THREE.BoxGeometry(0.90, 0.78, 0.06), panelMat);
+  facePanel.position.set(0, 0.07, 0.67);
+  headG.add(facePanel);
 
   // ── ANTENNA ──
   const antG = new THREE.Group();
@@ -314,93 +302,87 @@ function buildCosmo() {
   partGroups.eyes = eyesG;
   headG.add(eyesG);
 
-  // Big cute eyes — further apart at ±0.24, moved up to y=0.18, pushed forward z=0.70
-  [{ x: -0.24, name: 'leftIris' }, { x: 0.24, name: 'rightIris' }].forEach(({ x, name }) => {
+  // Eyes — compact, on the yellow face panel, reference-style
+  [{ x: -0.20, name: 'leftIris' }, { x: 0.20, name: 'rightIris' }].forEach(({ x, name }) => {
     const eyeG = new THREE.Group();
-    eyeG.position.set(x, 0.18, 0.70);
+    eyeG.position.set(x, 0.22, 0.74);
 
-    // Dark socket recess — bigger
-    const socket = new THREE.Mesh(new THREE.SphereGeometry(0.26, 32, 32), M.dark.clone());
-    socket.position.z = -0.06;
+    // Dark socket
+    const socket = new THREE.Mesh(new THREE.SphereGeometry(0.155, 24, 24), M.dark.clone());
+    socket.position.z = -0.04;
     socket.userData.part = 'eyes';
     eyeG.add(socket); hitMeshes.push(socket);
 
-    // White — much bigger (0.24 vs old 0.18)
-    const white = new THREE.Mesh(new THREE.SphereGeometry(0.24, 48, 48), M.eyeWhite.clone());
+    // White
+    const white = new THREE.Mesh(new THREE.SphereGeometry(0.145, 36, 36), M.eyeWhite.clone());
     white.userData.part = 'eyes';
     eyeG.add(white); hitMeshes.push(white);
 
     // Iris group
     const irisG = new THREE.Group();
     irisG.name = name;
-    const iris = new THREE.Mesh(new THREE.SphereGeometry(0.14, 32, 32), M.eyeIris.clone());
-    iris.position.set(0, 0, 0.1);
+    const iris = new THREE.Mesh(new THREE.SphereGeometry(0.092, 24, 24), M.eyeIris.clone());
+    iris.position.set(0, 0, 0.08);
     irisG.add(iris);
-    // Pupil
-    const pupil = new THREE.Mesh(new THREE.SphereGeometry(0.082, 24, 24), M.eyePupil.clone());
-    pupil.position.set(0, 0, 0.18);
+    const pupil = new THREE.Mesh(new THREE.SphereGeometry(0.058, 16, 16), M.eyePupil.clone());
+    pupil.position.set(0, 0, 0.13);
     irisG.add(pupil);
-    // Large shine dot
-    const shine1 = new THREE.Mesh(new THREE.SphereGeometry(0.048, 8, 8), M.eyeWhite.clone());
-    shine1.position.set(0.055, 0.055, 0.21);
+    const shine1 = new THREE.Mesh(new THREE.SphereGeometry(0.036, 8, 8), M.eyeWhite.clone());
+    shine1.position.set(0.038, 0.038, 0.155);
     irisG.add(shine1);
-    // Small second shine
-    const shine2 = new THREE.Mesh(new THREE.SphereGeometry(0.024, 6, 6), M.eyeWhite.clone());
-    shine2.position.set(-0.03, -0.04, 0.22);
+    const shine2 = new THREE.Mesh(new THREE.SphereGeometry(0.018, 6, 6), M.eyeWhite.clone());
+    shine2.position.set(-0.02, -0.025, 0.162);
     irisG.add(shine2);
     eyeG.add(irisG);
     eyesG.add(eyeG);
   });
 
   // Hit strip across both eyes
-  const eyeHit = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.55, 0.22), M.hit);
-  eyeHit.position.set(0, 0.18, 0.62);
+  const eyeHit = new THREE.Mesh(new THREE.BoxGeometry(0.72, 0.38, 0.22), M.hit);
+  eyeHit.position.set(0, 0.22, 0.68);
   addHit(eyesG, eyeHit);
 
   // ── NOSE ──
+  // Nose — small button, in front of face panel
   const noseG = new THREE.Group();
   noseG.name = 'nose'; noseG.userData.part = 'nose';
-  noseG.position.set(0, -0.07, 0.72);
+  noseG.position.set(0, 0.05, 0.77);
   partGroups.nose = noseG;
   headG.add(noseG);
 
-  const noseMesh = new THREE.Mesh(new THREE.SphereGeometry(0.09, 32, 32), M.nose.clone());
+  const noseMesh = new THREE.Mesh(new THREE.SphereGeometry(0.065, 24, 24), M.nose.clone());
   noseMesh.userData.part = 'nose';
   noseG.add(noseMesh); hitMeshes.push(noseMesh);
-  const noseShine = new THREE.Mesh(new THREE.SphereGeometry(0.03, 8, 8), M.eyeWhite.clone());
-  noseShine.position.set(0.035, 0.035, 0.065);
+  const noseShine = new THREE.Mesh(new THREE.SphereGeometry(0.022, 8, 8), M.eyeWhite.clone());
+  noseShine.position.set(0.025, 0.025, 0.048);
   noseG.add(noseShine);
-  addHit(noseG, new THREE.Mesh(new THREE.SphereGeometry(0.18, 8, 8), M.hit));
+  addHit(noseG, new THREE.Mesh(new THREE.SphereGeometry(0.16, 8, 8), M.hit));
 
-  // Cheek blush (subtle pink sphere either side)
+  // Cheek blushes — prominent pink flat circles on face panel
   [-1, 1].forEach(s => {
     const blush = new THREE.Mesh(
-      new THREE.SphereGeometry(0.12, 16, 16),
-      new THREE.MeshPhongMaterial({ color: 0xFF8888, transparent: true, opacity: 0.18 })
+      new THREE.CircleGeometry(0.115, 24),
+      new THREE.MeshBasicMaterial({ color: 0xFF9999, transparent: true, opacity: 0.78, side: THREE.DoubleSide })
     );
-    blush.position.set(s * 0.34, -0.18, 0.64);
+    blush.position.set(s * 0.30, 0.04, 0.71);
     headG.add(blush);
   });
 
-  // ── MOUTH ──
+  // ── MOUTH — clean red torus arc smile ──
   const mouthG = new THREE.Group();
   mouthG.name = 'mouth'; mouthG.userData.part = 'mouth';
-  mouthG.position.set(0, -0.27, 0.69);
+  mouthG.position.set(0, -0.11, 0.72);
   partGroups.mouth = mouthG;
   headG.add(mouthG);
 
-  // Smile: centre dot highest, corners curve down — clear happy smile
-  const mouthMat = new THREE.MeshPhongMaterial({ color: 0x0D1B2A, shininess: 60 });
-  for (let i = 0; i <= 8; i++) {
-    const t = i / 8 - 0.5; // -0.5 .. 0.5
-    // Parabola: y = centre_height - (t*scale)^2 → high in middle, lower at corners
-    const y = 0.06 - (t * 1.1) * (t * 1.1) * 0.55;
-    const dot = new THREE.Mesh(new THREE.SphereGeometry(0.040, 12, 12), mouthMat);
-    dot.position.set(t * 0.46, y, 0);
-    dot.userData.part = 'mouth';
-    mouthG.add(dot); hitMeshes.push(dot);
-  }
-  addHit(mouthG, new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.32, 0.18), M.hit));
+  // TorusGeometry arc (half circle). rotation.z = PI flips it:
+  //   open side faces UP → U shape = genuine smile
+  const smileMat = new THREE.MeshPhongMaterial({ color: 0xCC2222, shininess: 90, specular: new THREE.Color(0xFF8888) });
+  const smileArc = new THREE.Mesh(new THREE.TorusGeometry(0.17, 0.026, 10, 32, Math.PI), smileMat);
+  smileArc.rotation.z = Math.PI;
+  smileArc.userData.part = 'mouth';
+  mouthG.add(smileArc); hitMeshes.push(smileArc);
+  addHit(mouthG, new THREE.Mesh(new THREE.BoxGeometry(0.52, 0.26, 0.16), M.hit));
 
   // ── BODY ──
   const bodyG = new THREE.Group();
@@ -999,6 +981,17 @@ document.addEventListener('DOMContentLoaded', () => {
 async function initSplash() {
   const btns = document.getElementById('splash-btns');
   btns.classList.add('hidden');
-  await speak('Ooh hello! I am Cosmo! I am a friendly robot and I love making new friends! Tap me to find out all about my body parts!');
+  // Wait up to 1.5 s for the browser to finish loading voices
+  if (!voices.length) {
+    voices = syn.getVoices();
+    if (!voices.length) {
+      await new Promise(resolve => {
+        syn.onvoiceschanged = () => { voices = syn.getVoices(); resolve(); };
+        setTimeout(resolve, 1500);
+      });
+      voices = syn.getVoices();
+    }
+  }
+  await speak('Hello there! I am Cosmo, your friendly robot! I would love to be your friend. Tap different parts of my body to learn all about body parts!');
   btns.classList.remove('hidden');
 }

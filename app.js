@@ -234,10 +234,9 @@ function buildCosmo() {
   ));
 
   // Equatorial seam ring
-  headG.add(Object.assign(
-    new THREE.Mesh(new THREE.TorusGeometry(0.74, 0.03, 16, 80), M.dark.clone()),
-    { rotation: { x: Math.PI/2, y: 0, z: 0 } }
-  ));
+  const seamRing = new THREE.Mesh(new THREE.TorusGeometry(0.74, 0.03, 16, 80), M.dark.clone());
+  seamRing.rotation.x = Math.PI / 2;
+  headG.add(seamRing);
 
   // Face plate (subtle lighter panel)
   const facePlate = new THREE.Mesh(
@@ -251,20 +250,18 @@ function buildCosmo() {
   antG.position.set(0, 0.74, 0);
   headG.add(antG);
 
-  antG.add(Object.assign(
-    new THREE.Mesh(new THREE.CylinderGeometry(0.022, 0.04, 0.6, 16), M.gold.clone()),
-    { position: { x: 0, y: 0.3, z: 0 } }
-  ));
+  const antStick = new THREE.Mesh(new THREE.CylinderGeometry(0.022, 0.04, 0.6, 16), M.gold.clone());
+  antStick.position.set(0, 0.3, 0);
+  antG.add(antStick);
 
   const antBall = new THREE.Mesh(new THREE.SphereGeometry(0.11, 32, 32), M.glow.clone());
   antBall.position.y = 0.65;
   antBall.name = 'antBall';
   antG.add(antBall);
 
-  antG.add(Object.assign(
-    new THREE.Mesh(new THREE.TorusGeometry(0.11, 0.025, 8, 32), M.gold.clone()),
-    { position: { x: 0, y: 0.65, z: 0 } }
-  ));
+  const antRing = new THREE.Mesh(new THREE.TorusGeometry(0.11, 0.025, 8, 32), M.gold.clone());
+  antRing.position.set(0, 0.65, 0);
+  antG.add(antRing);
 
   // ── EARS ──
   const earsG = new THREE.Group();
@@ -315,24 +312,20 @@ function buildCosmo() {
     // Iris group (tracked by eye tracking system)
     const irisG = new THREE.Group();
     irisG.name = name;
-    irisG.add(Object.assign(
-      new THREE.Mesh(new THREE.SphereGeometry(0.105, 32, 32), M.eyeIris.clone()),
-      { position: { x: 0, y: 0, z: 0.08 } }
-    ));
+    const iris = new THREE.Mesh(new THREE.SphereGeometry(0.105, 32, 32), M.eyeIris.clone());
+    iris.position.set(0, 0, 0.08);
+    irisG.add(iris);
     // Pupil
-    irisG.add(Object.assign(
-      new THREE.Mesh(new THREE.SphereGeometry(0.062, 24, 24), M.eyePupil.clone()),
-      { position: { x: 0, y: 0, z: 0.14 } }
-    ));
+    const pupil = new THREE.Mesh(new THREE.SphereGeometry(0.062, 24, 24), M.eyePupil.clone());
+    pupil.position.set(0, 0, 0.14);
+    irisG.add(pupil);
     // Shine
-    irisG.add(Object.assign(
-      new THREE.Mesh(new THREE.SphereGeometry(0.032, 8, 8), M.eyeWhite.clone()),
-      { position: { x: 0.04, y: 0.04, z: 0.16 } }
-    ));
-    irisG.add(Object.assign(
-      new THREE.Mesh(new THREE.SphereGeometry(0.016, 6, 6), M.eyeWhite.clone()),
-      { position: { x: -0.02, y: -0.03, z: 0.17 } }
-    ));
+    const shine1 = new THREE.Mesh(new THREE.SphereGeometry(0.032, 8, 8), M.eyeWhite.clone());
+    shine1.position.set(0.04, 0.04, 0.16);
+    irisG.add(shine1);
+    const shine2 = new THREE.Mesh(new THREE.SphereGeometry(0.016, 6, 6), M.eyeWhite.clone());
+    shine2.position.set(-0.02, -0.03, 0.17);
+    irisG.add(shine2);
     eyeG.add(irisG);
     eyesG.add(eyeG);
   });
@@ -352,14 +345,10 @@ function buildCosmo() {
   const noseMesh = new THREE.Mesh(new THREE.SphereGeometry(0.09, 32, 32), M.nose.clone());
   noseMesh.userData.part = 'nose';
   noseG.add(noseMesh); hitMeshes.push(noseMesh);
-  noseG.add(Object.assign(
-    new THREE.Mesh(new THREE.SphereGeometry(0.03, 8, 8), M.eyeWhite.clone()),
-    { position: { x: 0.035, y: 0.035, z: 0.065 } }
-  ));
-  addHit(noseG, Object.assign(
-    new THREE.Mesh(new THREE.SphereGeometry(0.18, 8, 8), M.hit),
-    {}
-  ));
+  const noseShine = new THREE.Mesh(new THREE.SphereGeometry(0.03, 8, 8), M.eyeWhite.clone());
+  noseShine.position.set(0.035, 0.035, 0.065);
+  noseG.add(noseShine);
+  addHit(noseG, new THREE.Mesh(new THREE.SphereGeometry(0.18, 8, 8), M.hit));
 
   // Cheek blush (subtle pink sphere either side)
   [-1, 1].forEach(s => {
@@ -394,7 +383,7 @@ function buildCosmo() {
   innerMouth.position.z = -0.01;
   innerMouth.name = 'innerMouth';
   mouthG.add(innerMouth);
-  addHit(mouthG, Object.assign(new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.3, 0.18), M.hit), {}));
+  addHit(mouthG, new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.3, 0.18), M.hit));
 
   // ── BODY ──
   const bodyG = new THREE.Group();
@@ -460,9 +449,7 @@ function buildCosmo() {
     tummyG.add(sl);
   }
 
-  addHit(tummyG, Object.assign(
-    new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.68, 0.2), M.hit), {}
-  ));
+  addHit(tummyG, new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.68, 0.2), M.hit));
 
   // ── ARMS ──
   [-1, 1].forEach(s => {
@@ -510,10 +497,9 @@ function buildCosmo() {
     handsG.add(shine);
 
     // Hit sphere
-    addHit(handsG, Object.assign(
-      new THREE.Mesh(new THREE.SphereGeometry(0.3, 8, 8), M.hit),
-      { position: { x: s * 1.25, y: -0.06, z: 0 } }
-    ));
+    const handHit = new THREE.Mesh(new THREE.SphereGeometry(0.3, 8, 8), M.hit);
+    handHit.position.set(s * 1.25, -0.06, 0);
+    addHit(handsG, handHit);
   });
 
   // ── LEGS ──
@@ -545,21 +531,18 @@ function buildCosmo() {
     foot.userData.part = 'feet';
     feetG.add(foot); hitMeshes.push(foot);
 
-    feetG.add(Object.assign(
-      new THREE.Mesh(new THREE.BoxGeometry(0.32, 0.15, 0.2), toeMat.clone()),
-      { position: { x: s * 0.3, y: -1.46, z: 0.38 } }
-    ));
+    const toe = new THREE.Mesh(new THREE.BoxGeometry(0.32, 0.15, 0.2), toeMat.clone());
+    toe.position.set(s * 0.3, -1.46, 0.38);
+    feetG.add(toe);
 
     // Gold sole stripe
-    feetG.add(Object.assign(
-      new THREE.Mesh(new THREE.BoxGeometry(0.38, 0.035, 0.60), M.gold.clone()),
-      { position: { x: s * 0.3, y: -1.548, z: 0.12 } }
-    ));
+    const sole = new THREE.Mesh(new THREE.BoxGeometry(0.38, 0.035, 0.60), M.gold.clone());
+    sole.position.set(s * 0.3, -1.548, 0.12);
+    feetG.add(sole);
 
-    addHit(feetG, Object.assign(
-      new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.28, 0.72), M.hit),
-      { position: { x: s * 0.3, y: -1.46, z: 0.12 } }
-    ));
+    const footHit = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.28, 0.72), M.hit);
+    footHit.position.set(s * 0.3, -1.46, 0.12);
+    addHit(feetG, footHit);
   });
 
   return root;

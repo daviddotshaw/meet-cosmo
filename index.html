@@ -69,10 +69,10 @@
           <rect x="80" y="74" width="260" height="222" rx="56"/>
         </clipPath>
         <clipPath id="clip-leye">
-          <circle cx="166" cy="170" r="31"/>
+          <circle cx="166" cy="170" r="29"/>
         </clipPath>
         <clipPath id="clip-reye">
-          <circle cx="254" cy="170" r="31"/>
+          <circle cx="254" cy="170" r="29"/>
         </clipPath>
       </defs>
 
@@ -109,32 +109,28 @@
 
       <!-- ══ EYES ══ -->
       <g id="part-eyes">
-        <!-- Left eye -->
-        <circle cx="166" cy="170" r="35" fill="#122030"/>
-        <circle cx="166" cy="170" r="31" fill="url(#rg-eyewhite)"/>
-        <!-- Iris group — both irises share same translation (no crossing) -->
+        <!-- Left eye — large iris = kawaii style -->
+        <circle cx="166" cy="170" r="33" fill="#0A1820"/>
+        <circle cx="166" cy="170" r="29" fill="url(#rg-eyewhite)"/>
         <g id="left-iris-g">
-          <circle cx="166" cy="170" r="20" fill="url(#rg-iris)"/>
-          <circle cx="166" cy="170" r="13" fill="#081420"/>
-          <circle cx="156" cy="161" r="8"   fill="rgba(255,255,255,0.9)"/>
-          <circle cx="174" cy="178" r="3.5" fill="rgba(255,255,255,0.65)"/>
+          <circle cx="166" cy="170" r="24" fill="url(#rg-iris)"/>
+          <circle cx="166" cy="170" r="13" fill="#0A1820"/>
+          <circle cx="155" cy="159" r="9"  fill="rgba(255,255,255,0.92)"/>
         </g>
-        <!-- Eyelid: clipped rect sweeps from top down (natural blink) -->
         <g clip-path="url(#clip-leye)">
-          <rect id="left-lid-rect" x="135" y="139" width="62" height="0" fill="#122030"/>
+          <rect id="left-lid-rect" x="137" y="141" width="58" height="0" fill="#0A1820"/>
         </g>
 
         <!-- Right eye -->
-        <circle cx="254" cy="170" r="35" fill="#122030"/>
-        <circle cx="254" cy="170" r="31" fill="url(#rg-eyewhite)"/>
+        <circle cx="254" cy="170" r="33" fill="#0A1820"/>
+        <circle cx="254" cy="170" r="29" fill="url(#rg-eyewhite)"/>
         <g id="right-iris-g">
-          <circle cx="254" cy="170" r="20" fill="url(#rg-iris)"/>
-          <circle cx="254" cy="170" r="13" fill="#081420"/>
-          <circle cx="244" cy="161" r="8"   fill="rgba(255,255,255,0.9)"/>
-          <circle cx="262" cy="178" r="3.5" fill="rgba(255,255,255,0.65)"/>
+          <circle cx="254" cy="170" r="24" fill="url(#rg-iris)"/>
+          <circle cx="254" cy="170" r="13" fill="#0A1820"/>
+          <circle cx="243" cy="159" r="9"  fill="rgba(255,255,255,0.92)"/>
         </g>
         <g clip-path="url(#clip-reye)">
-          <rect id="right-lid-rect" x="223" y="139" width="62" height="0" fill="#122030"/>
+          <rect id="right-lid-rect" x="225" y="141" width="58" height="0" fill="#0A1820"/>
         </g>
       </g>
 
@@ -172,10 +168,15 @@
               fill="url(#rg-gold)" stroke="#A07000" stroke-width="2.5"/>
         <rect x="162" y="372" width="96" height="96" rx="17"
               fill="none" stroke="rgba(255,230,100,0.4)" stroke-width="2"/>
-        <!-- Checkmark ✓ -->
-        <path d="M 178 425 L 198 448 L 246 393"
-              stroke="white" stroke-width="11" fill="none"
-              stroke-linecap="round" stroke-linejoin="round"/>
+        <!-- Heart ♥ -->
+        <path d="M 210 445
+          C 188 438 166 424 166 406
+          C 166 394 175 386 187 386
+          C 196 386 204 391 210 398
+          C 216 391 224 386 233 386
+          C 245 386 254 394 254 406
+          C 254 424 232 438 210 445 Z"
+          fill="white"/>
       </g>
 
       <!-- ══ ARMS (hanging DOWN from shoulder joints) ══ -->

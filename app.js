@@ -103,12 +103,11 @@ loadVoices();
 syn.onvoiceschanged = loadVoices;
 
 function pickVoice() {
-  // Prefer US/AU female voices — avoids strong UK accent
+  // Prefer UK/AU female — sounds most child-like at high pitch
   const pref = [
-    v => /en[-_](US|CA)/i.test(v.lang) && /female|girl|junior|zira|susan|karen/i.test(v.name),
-    v => /en[-_](AU|NZ)/i.test(v.lang),
-    v => /en[-_](US|CA)/i.test(v.lang),
-    v => /en/i.test(v.lang) && /female|girl/i.test(v.name),
+    v => /en[-_](GB|AU)/i.test(v.lang) && /female|girl|junior|child|fiona|kate|serena|moira/i.test(v.name),
+    v => /en[-_](GB|AU)/i.test(v.lang),
+    v => /en[-_](US|CA)/i.test(v.lang) && /female|girl|junior/i.test(v.name),
     v => /en/i.test(v.lang),
     () => true,
   ];
@@ -183,7 +182,7 @@ window.addEventListener('touchmove', e => {
 // ── Blinking (eyelid sweeps TOP → DOWN, natural blink) ───────────────────────
 const leftLidRect  = document.getElementById('left-lid-rect');
 const rightLidRect = document.getElementById('right-lid-rect');
-const EYE_LID_MAX  = 62; // full height of eye circle (r=31, diameter=62)
+const EYE_LID_MAX  = 58; // full height of eye white (r=29, diameter=58)
 
 function doBlink() {
   let t = 0;
